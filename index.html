@@ -4,99 +4,97 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Twist Workshop</title>
-<style>
-  body { font-family:sans-serif; background:#f0f4f8; display:flex; justify-content:center; align-items:center; min-height:100vh; margin:0; }
-  .container { background:white; border-radius:2rem; padding:2rem; max-width:600px; width:100%; box-shadow:0 10px 30px rgba(0,0,0,0.1); text-align:center; }
-  textarea { width:100%; height:120px; border-radius:1rem; border:1px solid #ccc; padding:1rem; font-size:1rem; resize:none; }
-  button { margin-top:1rem; padding:0.8rem 1.2rem; font-size:1rem; border:none; border-radius:1rem; background:#6366f1; color:white; cursor:pointer; transition:0.2s; }
-  button:hover { background:#4f46e5; }
-  .score-box { margin-top:1rem; padding:1rem; border-radius:1rem; font-weight:bold; }
-  .score-20 { background:#f87171; color:white; }
-  .score-40 { background:#fbbf24; color:white; }
-  .score-50 { background:#60a5fa; color:white; }
-  .score-60 { background:#38bdf8; color:white; }
-  .score-80 { background:#34d399; color:white; }
-  .score-100 { background:#f472b6; color:white; }
-  footer { margin-top:2rem; font-size:0.8rem; color:#888; }
-  .progress { margin-top:1rem; font-weight:bold; }
-</style>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.3/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body>
-<div class="container">
-  <h1>The Twist Workshop</h1>
-  <div id="scenario-text"></div>
-  <textarea id="answer" placeholder="Type your answer here"></textarea>
-  <button onclick="submitAnswer()">Submit</button>
-  <div id="result"></div>
-  <button onclick="nextScenario()" id="next" style="display:none;">Next Scenario</button>
-  <button onclick="restartGame()" id="restart" style="display:none;">Restart Game</button>
-  <div class="progress" id="progress"></div>
-  <footer>Created by Knowledge Team</footer>
+<body class="bg-slate-50 font-sans flex justify-center p-4 md:p-8 min-h-screen">
+
+<div class="w-full max-w-4xl bg-white rounded-3xl shadow-2xl p-8 md:p-16 text-center">
+  <h1 class="text-4xl font-black mb-4">The <span class="text-indigo-600 italic">Twist</span> Workshop</h1>
+  <div id="scenario-text" class="text-xl font-medium mb-6"></div>
+  <textarea id="answer" placeholder="Type your answer here..." class="w-full h-40 p-6 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-indigo-400 mb-4 resize-none"></textarea>
+  <button id="submitBtn" class="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-indigo-700 transition">Submit</button>
+
+  <div id="result" class="mt-6 text-center"></div>
+  <button id="nextBtn" class="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold mt-4 hover:bg-slate-800 transition hidden">Next Scenario</button>
+  <button id="restartBtn" class="bg-amber-500 text-white px-6 py-3 rounded-2xl font-bold mt-4 hover:bg-amber-600 transition hidden">Restart Game</button>
+
+  <div id="progress" class="mt-6 font-bold text-slate-500"></div>
+  <footer class="mt-8 text-sm text-slate-400">Created by Knowledge Team</footer>
 </div>
 
 <script>
 const scenarios = [
-  "Scenario 1: A colleague interrupts your idea in a meeting.",
-  "Scenario 2: A colleague asks for a last-minute change.",
-  "Scenario 3: A teammate messages you blaming you for delay.",
-  "Scenario 4: A colleague presents your idea as theirs.",
-  "Scenario 5: A colleague asks a question you’ve already answered multiple times."
+  "A colleague interrupts your idea in a meeting.",
+  "A colleague asks for a last-minute change.",
+  "A teammate messages you blaming you for delay.",
+  "A colleague presents your idea as theirs.",
+  "A colleague asks a question you’ve already answered multiple times."
 ];
 
 let currentStep = 0;
 
+const scenarioText = document.getElementById("scenario-text");
+const resultDiv = document.getElementById("result");
+const answerInput = document.getElementById("answer");
+const submitBtn = document.getElementById("submitBtn");
+const nextBtn = document.getElementById("nextBtn");
+const restartBtn = document.getElementById("restartBtn");
+const progressDiv = document.getElementById("progress");
+
 function updateScenario() {
-  document.getElementById("scenario-text").innerHTML = `<p><strong>${scenarios[currentStep]}</strong></p>`;
-  document.getElementById("progress").innerText = `Scenario ${currentStep + 1} of ${scenarios.length}`;
-  document.getElementById("answer").value = "";
-  document.getElementById("result").innerHTML = "";
-  document.getElementById("next").style.display = "none";
+  scenarioText.innerText = scenarios[currentStep];
+  progressDiv.innerText = `Scenario ${currentStep+1} of ${scenarios.length}`;
+  answerInput.value = "";
+  resultDiv.innerHTML = "";
+  nextBtn.classList.add("hidden");
 }
 
 updateScenario();
 
-async function submitAnswer() {
-  const answer = document.getElementById("answer").value.trim();
-  if(!answer) return alert("Please type your answer");
-
-  document.getElementById("result").innerHTML = "Scoring...";
+submitBtn.addEventListener("click", async () => {
+  const answer = answerInput.value.trim();
+  if(!answer) return alert("Type your answer");
+  resultDiv.innerText = "Scoring...";
+  
   try {
     const res = await fetch("https://twist-workshop.vercel.app/api/evaluate", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({ scenario: scenarios[currentStep], answer })
+      body: JSON.stringify({ scenario: scenarios[currentStep], answer })
     });
-
     let data = await res.json();
     if(typeof data === "string") data = JSON.parse(data);
-
-    document.getElementById("result").innerHTML = `<div class="score-box score-${data.score}">Score: ${data.score}<br>Tip: ${data.tip}</div>`;
-    document.getElementById("next").style.display = "inline-block";
+    resultDiv.innerHTML = `<div class="p-4 rounded-xl text-white font-bold ${data.score===20?'bg-red-500':data.score===40?'bg-yellow-500':data.score===60?'bg-blue-500':data.score===80?'bg-green-500':'bg-pink-500'}">
+      Score: ${data.score}<br>Tip: ${data.tip}
+    </div>`;
+    nextBtn.classList.remove("hidden");
   } catch(e) {
     console.error(e);
-    document.getElementById("result").innerHTML = "Error scoring answer";
+    resultDiv.innerText = "Error scoring answer";
   }
-}
+});
 
-function nextScenario() {
-  if(currentStep < scenarios.length - 1){
+nextBtn.addEventListener("click", () => {
+  if(currentStep < scenarios.length-1) {
     currentStep++;
     updateScenario();
   } else {
-    document.getElementById("scenario-text").innerHTML = "<h2>Workshop Complete!</h2>";
-    document.getElementById("answer").style.display = "none";
-    document.getElementById("next").style.display = "none";
-    document.getElementById("result").innerHTML += "<p>End of all scenarios. Click Restart to play again.</p>";
-    document.getElementById("restart").style.display = "inline-block";
+    scenarioText.innerHTML = "<h2>Workshop Complete!</h2>";
+    answerInput.style.display = "none";
+    submitBtn.style.display = "none";
+    nextBtn.style.display = "none";
+    restartBtn.classList.remove("hidden");
+    resultDiv.innerHTML += "<p class='mt-4 font-bold'>End of all scenarios.</p>";
   }
-}
+});
 
-function restartGame() {
+restartBtn.addEventListener("click", () => {
   currentStep = 0;
-  document.getElementById("answer").style.display = "block";
+  answerInput.style.display = "block";
+  submitBtn.style.display = "inline-block";
+  restartBtn.classList.add("hidden");
   updateScenario();
-  document.getElementById("restart").style.display = "none";
-}
+});
 </script>
 </body>
 </html>
