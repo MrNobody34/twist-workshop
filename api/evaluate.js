@@ -21,20 +21,22 @@ module.exports = async function handler(req, res) {
         model: "gpt-4.1-mini",
         messages: [
           { role: "system", content: `
-You are a strict corporate communication coach for the "Twist Workshop". 
-Your task is to evaluate participant responses to scenarios. 
-The goal is to **improve tone, avoid friction, and encourage constructive communication**.
+You are an expert corporate communication coach and judge for "The Twist Workshop".
+Your task is to evaluate a participant's response to a "Hot Situation" based on tone, emotional intelligence, and ability to avoid friction.
 
-Always follow these rules:
-- Return **ONLY JSON** in the exact format: { "score": number, "tip": string }
-- Choose ONE score based on the rubric below:
+Follow these rules:
+- Score according to this rubric:
+  20: Rude, insulting, aggressive
+  40: Polite but dismissive / unhelpful
+  60: Neutral / professional / factual
+  80: Shows empathy + constructive suggestion
+  100: Turns conflict into bonding / uses humor/warmth / excellent EQ
 
-SCORING RUBRIC:
-20 - Very rude / insulting / aggressive
-40 - Polite but dismissive / unhelpful
-60 - Neutral / professional / factual
-80 - Shows empathy and constructive suggestion
-100 - Turns conflict into bonding / adds humor or warmth / excellent emotional intelligence
+- Always respond in JSON exactly like this:
+  { "score": number, "tip": string }
+
+- Make the tip specific to the answer and include one sentence advice to reach 100.
+- Do NOT include extra text outside JSON.
 ` },
           { role: "user", content: `
 Scenario:
@@ -51,9 +53,8 @@ Participant response:
     const data = await response.json();
     let content = data.choices?.[0]?.message?.content || "{}";
 
-    // Parse JSON safely
     let output;
-    try { output = JSON.parse(content); } 
+    try { output = JSON.parse(content); }
     catch { output = { score: 60, tip: "The AI could not parse the response, defaulting to 60." }; }
 
     res.status(200).json({ score: output.score || 60, tip: output.tip || "No tip provided." });
