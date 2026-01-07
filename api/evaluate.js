@@ -1,6 +1,5 @@
 // api/evaluate.js
 module.exports = async function handler(req, res) {
-  // Enable CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -21,39 +20,42 @@ module.exports = async function handler(req, res) {
       body: JSON.stringify({
         model: "gpt-4.1-mini",
         messages: [
-          { role: "system", content: "You are a strict corporate communication coach. Score tone and friction avoidance." },
+          { role: "system", content: `
+You are a strict corporate communication coach for the "Twist Workshop". 
+Your task is to evaluate participant responses to scenarios. 
+The goal is to **improve tone, avoid friction, and encourage constructive communication**.
+
+Always follow these rules:
+- Return **ONLY JSON** in the exact format: { "score": number, "tip": string }
+- Choose ONE score based on the rubric below:
+
+SCORING RUBRIC:
+20 - Very rude / insulting / aggressive
+40 - Polite but dismissive / unhelpful
+60 - Neutral / professional / factual
+80 - Shows empathy and constructive suggestion
+100 - Turns conflict into bonding / adds humor or warmth / excellent emotional intelligence
+` },
           { role: "user", content: `
 Scenario:
 ${scenario}
 
 Participant response:
 "${answer}"
-
-SCORING RULES:
-- 20: Rude, insulting, dismissive
-- 40: Filler / meaningless
-- 50: Polite but unhelpful refusal
-- 60: Neutral professional
-- 80: Empathy + constructive boundary
-- 100: Empathy + relationship-building
-
-Return ONLY JSON with:
-{ "score": number, "tip": string }
 ` }
         ],
-        temperature: 0.1
+        temperature: 0
       })
     });
 
     const data = await response.json();
     let content = data.choices?.[0]?.message?.content || "{}";
 
-    // Clean up in case OpenAI returns stringified JSON
+    // Parse JSON safely
     let output;
     try { output = JSON.parse(content); } 
-    catch { output = { score: 60, tip: "Could not parse AI output, defaulting to 60." }; }
+    catch { output = { score: 60, tip: "The AI could not parse the response, defaulting to 60." }; }
 
-    // Make sure we always return score and tip
     res.status(200).json({ score: output.score || 60, tip: output.tip || "No tip provided." });
 
   } catch (err) {
