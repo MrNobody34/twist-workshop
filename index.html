@@ -8,15 +8,17 @@
 </head>
 <body class="bg-slate-50 font-sans">
 
-<div class="min-h-screen flex items-center justify-center p-4">
-  <div class="w-full max-w-5xl bg-white rounded-3xl shadow-2xl p-8 md:p-16 text-center">
+<div class="min-h-screen flex items-center justify-center p-4 md:p-8">
+  <div class="w-full max-w-5xl bg-white rounded-3xl shadow-2xl p-8 md:p-16 text-center relative">
+
     <h1 class="text-4xl md:text-5xl font-black mb-4">The <span class="text-indigo-600 italic">Twist</span> Workshop</h1>
 
-    <div id="scenario-text" class="text-xl text-slate-700 mb-4"></div>
-    <div id="scenario-context" class="text-sm text-slate-400 mb-4"></div>
+    <div id="scenario-text" class="text-xl text-slate-700 mb-2"></div>
+    <div id="scenario-context" class="text-sm text-slate-400 mb-6"></div>
 
     <textarea id="answer" placeholder="Type your answer here..." class="w-full h-40 p-6 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-indigo-400 mb-4 resize-none text-lg"></textarea>
-    <button id="submitBtn" class="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-indigo-700 transition">Evaluate The Twist</button>
+
+    <button id="submitBtn" class="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-indigo-700 transition mb-4">Submit</button>
 
     <div id="result" class="mt-6 text-center"></div>
     <button id="nextBtn" class="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold mt-4 hover:bg-slate-800 transition hidden">Next Scenario</button>
@@ -28,40 +30,45 @@
 </div>
 
 <script>
+// Full descriptive scenarios
 const scenarios = [
   {
-    id:1,
     title:"The Interruptor",
     trigger:"You’re presenting an idea in a meeting. A colleague interrupts you (again) and says: 'This won’t work. We already tried something like this.'",
     context:"This is a classic challenge to your authority and expertise in a public setting."
   },
   {
-    id:2,
     title:"The Last-Minute Pivot",
     trigger:"You deliver a piece of work on time. A colleague replies: 'Actually, we need to change the whole approach. Can you redo it for tomorrow?'",
     context:"This tests your boundaries and your ability to handle frustration regarding wasted effort."
   },
   {
-    id:3,
     title:"The Blame Game",
     trigger:"A teammate messages you: 'Why is this late? This is blocking everyone.'",
     context:"A direct digital attack that can easily trigger a defensive or aggressive counter-message."
   },
   {
-    id:4,
     title:"The Idea Thief",
     trigger:"In a meeting, a colleague presents your idea as theirs. The manager reacts positively.",
     context:"A high-stakes situation where your ego and professional recognition are at risk."
   },
   {
-    id:5,
     title:"The Broken Record",
     trigger:"A colleague asks a question you feel you’ve already answered multiple times. You think: 'We’ve gone over this.'",
     context:"A test of patience and your ability to avoid sounding condescending."
   }
 ];
 
+const RUBRIC = {
+  20:"Very rude / aggressive / insulting",
+  40:"Polite but dismissive / unhelpful",
+  60:"Neutral / professional / factual",
+  80:"Shows empathy + constructive suggestion",
+  100:"Turns conflict into bonding / uses humor or warmth"
+};
+
 let currentStep = 0;
+let totalScore = 0;
 
 const scenarioText = document.getElementById("scenario-text");
 const scenarioContext = document.getElementById("scenario-context");
@@ -84,42 +91,48 @@ function updateScenario() {
 
 updateScenario();
 
-submitBtn.addEventListener("click", async () => {
+// **Fake scoring for testing**
+function fakeScore(answer) {
+  const len = answer.trim().length;
+  if(len < 10) return 40;
+  if(answer.toLowerCase().includes("bad") || answer.toLowerCase().includes("shit")) return 20;
+  if(answer.toLowerCase().includes("please") || answer.toLowerCase().includes("thank")) return 80;
+  return 60;
+}
+
+function getTip(score) {
+  switch(score){
+    case 20: return "Your response is aggressive. Stay calm and polite.";
+    case 40: return "Polite but could be more helpful.";
+    case 60: return "Neutral response. Aim to add empathy.";
+    case 80: return "Good empathy! Try to add humor or warmth for 100.";
+    case 100: return "Excellent! You turned the situation into a bonding moment.";
+  }
+}
+
+submitBtn.addEventListener("click", () => {
   const answer = answerInput.value.trim();
   if(!answer) return alert("Type your answer");
 
-  resultDiv.innerText = "Analyzing...";
-  
-  try {
-    const res = await fetch("https://twist-workshop.vercel.app/api/evaluate", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ scenario: scenarios[currentStep].trigger + "\n" + scenarios[currentStep].context, answer })
-    });
+  const score = fakeScore(answer);
+  const tip = getTip(score);
+  totalScore += score;
 
-    let data = await res.json();
-    if(typeof data === "string") data = JSON.parse(data);
-
-    // Colored badges based on score
-    let color = data.score === 20 ? "bg-red-500" :
-                data.score === 40 ? "bg-yellow-500" :
-                data.score === 60 ? "bg-blue-500" :
-                data.score === 80 ? "bg-green-500" :
+  const color = score === 20 ? "bg-red-500" :
+                score === 40 ? "bg-yellow-500" :
+                score === 60 ? "bg-blue-500" :
+                score === 80 ? "bg-green-500" :
                 "bg-pink-500";
 
-    resultDiv.innerHTML = `<div class="p-4 rounded-xl text-white font-bold ${color}">
-      Score: ${data.score}<br>Tip: ${data.tip}
-    </div>`;
+  resultDiv.innerHTML = `<div class="p-4 rounded-xl text-white font-bold ${color}">
+    Score: ${score}<br>Tip: ${tip}
+  </div>`;
 
-    nextBtn.classList.remove("hidden");
-  } catch(e) {
-    console.error(e);
-    resultDiv.innerText = "Error scoring answer";
-  }
+  nextBtn.classList.remove("hidden");
 });
 
 nextBtn.addEventListener("click", () => {
-  if(currentStep < scenarios.length-1) {
+  if(currentStep < scenarios.length-1){
     currentStep++;
     updateScenario();
   } else {
@@ -129,17 +142,19 @@ nextBtn.addEventListener("click", () => {
     submitBtn.style.display = "none";
     nextBtn.style.display = "none";
     restartBtn.classList.remove("hidden");
-    resultDiv.innerHTML += "<p class='mt-4 font-bold'>End of all scenarios.</p>";
+    resultDiv.innerHTML = `<p class="mt-4 font-bold">Your total score: ${totalScore}</p>`;
   }
 });
 
 restartBtn.addEventListener("click", () => {
   currentStep = 0;
+  totalScore = 0;
   answerInput.style.display = "block";
   submitBtn.style.display = "inline-block";
   restartBtn.classList.add("hidden");
   updateScenario();
 });
 </script>
+
 </body>
 </html>
