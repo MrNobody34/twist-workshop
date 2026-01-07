@@ -32,7 +32,7 @@
 </div>
 
 <script>
-const scenario = "A colleague asks for a last-minute change";
+const scenario = "Scenario 2: A colleague asks for a last-minute change";
 
 async function submitAnswer() {
   const answer = document.getElementById("answer").value.trim();
@@ -40,7 +40,7 @@ async function submitAnswer() {
 
   document.getElementById("result").innerHTML = "Scoring...";
   try {
-    const res = await fetch("https://YOUR-PROJECT-NAME.vercel.app/api/evaluate", {
+    const res = await fetch("https://twist-workshop.vercel.app/api/evaluate", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({ scenario, answer })
@@ -49,6 +49,7 @@ async function submitAnswer() {
     document.getElementById("result").innerHTML = `<div class="score-box score-${data.score}">Score: ${data.score}<br>Tip: ${data.tip}</div>`;
     document.getElementById("restart").style.display="inline-block";
   } catch(e) {
+    console.error(e);
     document.getElementById("result").innerHTML = "Error scoring answer";
   }
 }
