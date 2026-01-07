@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Twist Workshop</title>
+<style>
+  body { font-family: sans-serif; background: #f0f4f8; color: #333; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin:0; }
+  .container { background: white; border-radius: 2rem; padding: 2rem; max-width: 600px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align:center; }
+  textarea { width: 100%; height: 120px; border-radius: 1rem; border:1px solid #ccc; padding:1rem; font-size:1rem; resize:none; }
+  button { margin-top: 1rem; padding: 0.8rem 1.2rem; font-size:1rem; border:none; border-radius:1rem; background:#6366f1; color:white; cursor:pointer; transition:0.2s; }
+  button:hover { background:#4f46e5; }
+  .score-box { margin-top:1rem; padding:1rem; border-radius:1rem; font-weight:bold; }
+  .score-20 { background:#f87171; color:white; }
+  .score-40 { background:#fbbf24; color:white; }
+  .score-50 { background:#60a5fa; color:white; }
+  .score-60 { background:#38bdf8; color:white; }
+  .score-80 { background:#34d399; color:white; }
+  .score-100 { background:#f472b6; color:white; }
+  footer { margin-top:2rem; font-size:0.8rem; color:#888; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>The Twist Workshop</h1>
+  <p>Type your answer here:</p>
+  <textarea id="answer"></textarea>
+  <button onclick="submitAnswer()">Submit</button>
+  <div id="result"></div>
+  <button onclick="restartGame()" id="restart" style="display:none;">Restart Game</button>
+  <footer>Created by Knowledge Team</footer>
+</div>
+
+<script>
+const scenario = "A colleague asks for a last-minute change";
+
+async function submitAnswer() {
+  const answer = document.getElementById("answer").value.trim();
+  if(!answer) return alert("Please type your answer");
+
+  document.getElementById("result").innerHTML = "Scoring...";
+  try {
+    const res = await fetch("https://YOUR-PROJECT-NAME.vercel.app/api/evaluate", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ scenario, answer })
+    });
+    const data = await res.json();
+    document.getElementById("result").innerHTML = `<div class="score-box score-${data.score}">Score: ${data.score}<br>Tip: ${data.tip}</div>`;
+    document.getElementById("restart").style.display="inline-block";
+  } catch(e) {
+    document.getElementById("result").innerHTML = "Error scoring answer";
+  }
+}
+
+function restartGame() {
+  document.getElementById("answer").value="";
+  document.getElementById("result").innerHTML="";
+  document.getElementById("restart").style.display="none";
+}
+</script>
+</body>
+</html>
