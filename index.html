@@ -30,6 +30,7 @@
 </div>
 
 <script>
+// ------------------- SCENARIOS -------------------
 const scenarios = [
   {
     title:"The Interruptor",
@@ -58,6 +59,7 @@ const scenarios = [
   }
 ];
 
+// ------------------- RUBRIC -------------------
 const RUBRIC = {
   20:"Very rude / aggressive / insulting",
   40:"Polite but dismissive / unhelpful",
@@ -66,6 +68,7 @@ const RUBRIC = {
   100:"Turns conflict into bonding / uses humor or warmth"
 };
 
+// ------------------- VARIABLES -------------------
 let currentStep = 0;
 let totalScore = 0;
 
@@ -78,6 +81,7 @@ const nextBtn = document.getElementById("nextBtn");
 const restartBtn = document.getElementById("restartBtn");
 const progressDiv = document.getElementById("progress");
 
+// ------------------- UPDATE SCENARIO -------------------
 function updateScenario() {
   const sc = scenarios[currentStep];
   scenarioText.innerText = sc.trigger;
@@ -87,42 +91,35 @@ function updateScenario() {
   resultDiv.innerHTML = "";
   nextBtn.classList.add("hidden");
 }
-
 updateScenario();
 
-// Improved scoring
+// ------------------- SMART SCORING -------------------
 function evaluateAnswer(answer){
   const text = answer.toLowerCase();
 
-  // Check nonsense / empty
+  // Early filter for nonsense / short
   if(text.trim().length < 5 || text.match(/^(bla|test|asdf|123)+$/i)) return 40;
 
-  // Negative / aggressive words
-  const negative = ["shit","stupid","idiot","hate","useless","bad"];
-  for(const word of negative){
-    if(text.includes(word)) return 20;
+  const negativeWords = ["shit","stupid","idiot","hate","useless","bad","ridiculous","angry","dumb","stop"];
+  const neutralWords  = ["ok","fine","noted","understood","yes","no","this","i’m","the","whatever"];
+  const empathyWords  = ["please","thank","suggest","could","might","recommend","appreciate","understand","support"];
+  const positiveWords = ["great","awesome","love","happy","fun","cheers","haha","delighted","excited","haha"];
+
+  let neg = 0, neu = 0, emp = 0, pos = 0;
+
+  const words = text.match(/\b\w+\b/g) || [];
+  for (const w of words){
+    if(negativeWords.includes(w)) neg++;
+    else if(empathyWords.includes(w)) emp++;
+    else if(positiveWords.includes(w)) pos++;
+    else if(neutralWords.includes(w)) neu++;
   }
 
-  // Polite / neutral
-  const neutral = ["ok","fine","noted","understood","yes","no"];
-  for(const word of neutral){
-    if(text.includes(word)) return 60;
-  }
-
-  // Empathy / constructive
-  const empathy = ["please","thank","suggest","could","might","recommend"];
-  for(const word of empathy){
-    if(text.includes(word)) return 80;
-  }
-
-  // Humor / bonding / positive
-  const positive = ["great","awesome","love","happy","fun","cheers","haha"];
-  for(const word of positive){
-    if(text.includes(word)) return 100;
-  }
-
-  // Default fallback
-  return 60;
+  if(neg > 0) return 20;
+  if(pos > 0) return 100;
+  if(emp > 0) return 80;
+  if(neu > 0) return 60;
+  return 40; // fallback
 }
 
 function getTip(score){
@@ -135,6 +132,7 @@ function getTip(score){
   }
 }
 
+// ------------------- BUTTON EVENTS -------------------
 submitBtn.addEventListener("click", () => {
   const answer = answerInput.value.trim();
   if(!answer) return alert("Type your answer");
