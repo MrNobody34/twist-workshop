@@ -100,26 +100,20 @@ function evaluateAnswer(answer){
   // Early filter for nonsense / short
   if(text.trim().length < 5 || text.match(/^(bla|test|asdf|123)+$/i)) return 40;
 
-  const negativeWords = ["shit","stupid","idiot","hate","useless","bad","ridiculous","angry","dumb","stop"];
-  const neutralWords  = ["ok","fine","noted","understood","yes","no","this","i’m","the","whatever"];
-  const empathyWords  = ["please","thank","suggest","could","might","recommend","appreciate","understand","support"];
-  const positiveWords = ["great","awesome","love","happy","fun","cheers","haha","delighted","excited","haha"];
+  // ------------------- KEYWORDS -------------------
+  const negative = ["shit","stupid","idiot","hate","useless","bad","ridiculous","angry","dumb","stop"];
+  const empathy   = ["please","thank","suggest","could","might","recommend","appreciate","understand","support"];
+  const positive  = ["great","awesome","love","happy","fun","cheers","haha","delighted","excited","celebrate","coffee","together","haha","lol"];
+  const neutral   = ["ok","fine","noted","understood","yes","no","this","i’m","the","whatever"];
 
-  let neg = 0, neu = 0, emp = 0, pos = 0;
+  // ------------------- DETECT -------------------
+  const containsAny = (list) => list.some(w => text.includes(w));
 
-  const words = text.match(/\b\w+\b/g) || [];
-  for (const w of words){
-    if(negativeWords.includes(w)) neg++;
-    else if(empathyWords.includes(w)) emp++;
-    else if(positiveWords.includes(w)) pos++;
-    else if(neutralWords.includes(w)) neu++;
-  }
-
-  if(neg > 0) return 20;
-  if(pos > 0) return 100;
-  if(emp > 0) return 80;
-  if(neu > 0) return 60;
-  return 40; // fallback
+  if(containsAny(negative)) return 20;     // Any negative word → 20
+  if(containsAny(positive)) return 100;    // Any positive/humor word → 100
+  if(containsAny(empathy)) return 80;      // Any empathy → 80
+  if(containsAny(neutral)) return 60;      // Neutral → 60
+  return 40;                                // fallback
 }
 
 function getTip(score){
