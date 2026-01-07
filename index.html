@@ -6,34 +6,65 @@
 <title>The Twist Workshop</title>
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.3/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body class="bg-slate-50 font-sans flex justify-center p-4 md:p-8 min-h-screen">
+<body class="bg-slate-50 font-sans">
 
-<div class="w-full max-w-4xl bg-white rounded-3xl shadow-2xl p-8 md:p-16 text-center">
-  <h1 class="text-4xl font-black mb-4">The <span class="text-indigo-600 italic">Twist</span> Workshop</h1>
-  <div id="scenario-text" class="text-xl font-medium mb-6"></div>
-  <textarea id="answer" placeholder="Type your answer here..." class="w-full h-40 p-6 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-indigo-400 mb-4 resize-none"></textarea>
-  <button id="submitBtn" class="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-indigo-700 transition">Submit</button>
+<div class="min-h-screen flex items-center justify-center p-4">
+  <div class="w-full max-w-5xl bg-white rounded-3xl shadow-2xl p-8 md:p-16 text-center">
+    <h1 class="text-4xl md:text-5xl font-black mb-4">The <span class="text-indigo-600 italic">Twist</span> Workshop</h1>
 
-  <div id="result" class="mt-6 text-center"></div>
-  <button id="nextBtn" class="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold mt-4 hover:bg-slate-800 transition hidden">Next Scenario</button>
-  <button id="restartBtn" class="bg-amber-500 text-white px-6 py-3 rounded-2xl font-bold mt-4 hover:bg-amber-600 transition hidden">Restart Game</button>
+    <div id="scenario-text" class="text-xl text-slate-700 mb-4"></div>
+    <div id="scenario-context" class="text-sm text-slate-400 mb-4"></div>
 
-  <div id="progress" class="mt-6 font-bold text-slate-500"></div>
-  <footer class="mt-8 text-sm text-slate-400">Created by Knowledge Team</footer>
+    <textarea id="answer" placeholder="Type your answer here..." class="w-full h-40 p-6 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-indigo-400 mb-4 resize-none text-lg"></textarea>
+    <button id="submitBtn" class="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-indigo-700 transition">Evaluate The Twist</button>
+
+    <div id="result" class="mt-6 text-center"></div>
+    <button id="nextBtn" class="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold mt-4 hover:bg-slate-800 transition hidden">Next Scenario</button>
+    <button id="restartBtn" class="bg-amber-500 text-white px-6 py-3 rounded-2xl font-bold mt-4 hover:bg-amber-600 transition hidden">Restart Game</button>
+
+    <div id="progress" class="mt-6 font-bold text-slate-500"></div>
+    <footer class="mt-8 text-sm text-slate-400">Created by Knowledge Team</footer>
+  </div>
 </div>
 
 <script>
 const scenarios = [
-  "A colleague interrupts your idea in a meeting.",
-  "A colleague asks for a last-minute change.",
-  "A teammate messages you blaming you for delay.",
-  "A colleague presents your idea as theirs.",
-  "A colleague asks a question you’ve already answered multiple times."
+  {
+    id:1,
+    title:"The Interruptor",
+    trigger:"You’re presenting an idea in a meeting. A colleague interrupts you (again) and says: 'This won’t work. We already tried something like this.'",
+    context:"This is a classic challenge to your authority and expertise in a public setting."
+  },
+  {
+    id:2,
+    title:"The Last-Minute Pivot",
+    trigger:"You deliver a piece of work on time. A colleague replies: 'Actually, we need to change the whole approach. Can you redo it for tomorrow?'",
+    context:"This tests your boundaries and your ability to handle frustration regarding wasted effort."
+  },
+  {
+    id:3,
+    title:"The Blame Game",
+    trigger:"A teammate messages you: 'Why is this late? This is blocking everyone.'",
+    context:"A direct digital attack that can easily trigger a defensive or aggressive counter-message."
+  },
+  {
+    id:4,
+    title:"The Idea Thief",
+    trigger:"In a meeting, a colleague presents your idea as theirs. The manager reacts positively.",
+    context:"A high-stakes situation where your ego and professional recognition are at risk."
+  },
+  {
+    id:5,
+    title:"The Broken Record",
+    trigger:"A colleague asks a question you feel you’ve already answered multiple times. You think: 'We’ve gone over this.'",
+    context:"A test of patience and your ability to avoid sounding condescending."
+  }
 ];
 
 let currentStep = 0;
 
 const scenarioText = document.getElementById("scenario-text");
+const scenarioContext = document.getElementById("scenario-context");
 const resultDiv = document.getElementById("result");
 const answerInput = document.getElementById("answer");
 const submitBtn = document.getElementById("submitBtn");
@@ -42,7 +73,9 @@ const restartBtn = document.getElementById("restartBtn");
 const progressDiv = document.getElementById("progress");
 
 function updateScenario() {
-  scenarioText.innerText = scenarios[currentStep];
+  const sc = scenarios[currentStep];
+  scenarioText.innerText = sc.trigger;
+  scenarioContext.innerText = sc.context;
   progressDiv.innerText = `Scenario ${currentStep+1} of ${scenarios.length}`;
   answerInput.value = "";
   resultDiv.innerHTML = "";
@@ -54,19 +87,30 @@ updateScenario();
 submitBtn.addEventListener("click", async () => {
   const answer = answerInput.value.trim();
   if(!answer) return alert("Type your answer");
-  resultDiv.innerText = "Scoring...";
+
+  resultDiv.innerText = "Analyzing...";
   
   try {
     const res = await fetch("https://twist-workshop.vercel.app/api/evaluate", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ scenario: scenarios[currentStep], answer })
+      body: JSON.stringify({ scenario: scenarios[currentStep].trigger + "\n" + scenarios[currentStep].context, answer })
     });
+
     let data = await res.json();
     if(typeof data === "string") data = JSON.parse(data);
-    resultDiv.innerHTML = `<div class="p-4 rounded-xl text-white font-bold ${data.score===20?'bg-red-500':data.score===40?'bg-yellow-500':data.score===60?'bg-blue-500':data.score===80?'bg-green-500':'bg-pink-500'}">
+
+    // Colored badges based on score
+    let color = data.score === 20 ? "bg-red-500" :
+                data.score === 40 ? "bg-yellow-500" :
+                data.score === 60 ? "bg-blue-500" :
+                data.score === 80 ? "bg-green-500" :
+                "bg-pink-500";
+
+    resultDiv.innerHTML = `<div class="p-4 rounded-xl text-white font-bold ${color}">
       Score: ${data.score}<br>Tip: ${data.tip}
     </div>`;
+
     nextBtn.classList.remove("hidden");
   } catch(e) {
     console.error(e);
@@ -80,6 +124,7 @@ nextBtn.addEventListener("click", () => {
     updateScenario();
   } else {
     scenarioText.innerHTML = "<h2>Workshop Complete!</h2>";
+    scenarioContext.innerHTML = "";
     answerInput.style.display = "none";
     submitBtn.style.display = "none";
     nextBtn.style.display = "none";
