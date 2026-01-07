@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Twist Workshop</title>
 <style>
-  body { font-family: sans-serif; background: #f0f4f8; color: #333; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin:0; }
-  .container { background: white; border-radius: 2rem; padding: 2rem; max-width: 600px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align:center; }
-  textarea { width: 100%; height: 120px; border-radius: 1rem; border:1px solid #ccc; padding:1rem; font-size:1rem; resize:none; }
-  button { margin-top: 1rem; padding: 0.8rem 1.2rem; font-size:1rem; border:none; border-radius:1rem; background:#6366f1; color:white; cursor:pointer; transition:0.2s; }
+  body { font-family:sans-serif; background:#f0f4f8; display:flex; justify-content:center; align-items:center; min-height:100vh; margin:0; }
+  .container { background:white; border-radius:2rem; padding:2rem; max-width:600px; width:100%; box-shadow:0 10px 30px rgba(0,0,0,0.1); text-align:center; }
+  textarea { width:100%; height:120px; border-radius:1rem; border:1px solid #ccc; padding:1rem; font-size:1rem; resize:none; }
+  button { margin-top:1rem; padding:0.8rem 1.2rem; font-size:1rem; border:none; border-radius:1rem; background:#6366f1; color:white; cursor:pointer; transition:0.2s; }
   button:hover { background:#4f46e5; }
   .score-box { margin-top:1rem; padding:1rem; border-radius:1rem; font-weight:bold; }
   .score-20 { background:#f87171; color:white; }
@@ -18,21 +18,42 @@
   .score-80 { background:#34d399; color:white; }
   .score-100 { background:#f472b6; color:white; }
   footer { margin-top:2rem; font-size:0.8rem; color:#888; }
+  .progress { margin-top:1rem; font-weight:bold; }
 </style>
 </head>
 <body>
 <div class="container">
   <h1>The Twist Workshop</h1>
-  <p>Type your answer here:</p>
-  <textarea id="answer"></textarea>
+  <div id="scenario-text"></div>
+  <textarea id="answer" placeholder="Type your answer here"></textarea>
   <button onclick="submitAnswer()">Submit</button>
   <div id="result"></div>
+  <button onclick="nextScenario()" id="next" style="display:none;">Next Scenario</button>
   <button onclick="restartGame()" id="restart" style="display:none;">Restart Game</button>
+  <div class="progress" id="progress"></div>
   <footer>Created by Knowledge Team</footer>
 </div>
 
 <script>
-const scenario = "Scenario 2: A colleague asks for a last-minute change";
+const scenarios = [
+  "Scenario 1: A colleague interrupts your idea in a meeting.",
+  "Scenario 2: A colleague asks for a last-minute change.",
+  "Scenario 3: A teammate messages you blaming you for delay.",
+  "Scenario 4: A colleague presents your idea as theirs.",
+  "Scenario 5: A colleague asks a question you’ve already answered multiple times."
+];
+
+let currentStep = 0;
+
+function updateScenario() {
+  document.getElementById("scenario-text").innerHTML = `<p><strong>${scenarios[currentStep]}</strong></p>`;
+  document.getElementById("progress").innerText = `Scenario ${currentStep + 1} of ${scenarios.length}`;
+  document.getElementById("answer").value = "";
+  document.getElementById("result").innerHTML = "";
+  document.getElementById("next").style.display = "none";
+}
+
+updateScenario();
 
 async function submitAnswer() {
   const answer = document.getElementById("answer").value.trim();
@@ -43,21 +64,38 @@ async function submitAnswer() {
     const res = await fetch("https://twist-workshop.vercel.app/api/evaluate", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({ scenario, answer })
+      body:JSON.stringify({ scenario: scenarios[currentStep], answer })
     });
-    const data = await res.json();
+
+    let data = await res.json();
+    if(typeof data === "string") data = JSON.parse(data);
+
     document.getElementById("result").innerHTML = `<div class="score-box score-${data.score}">Score: ${data.score}<br>Tip: ${data.tip}</div>`;
-    document.getElementById("restart").style.display="inline-block";
+    document.getElementById("next").style.display = "inline-block";
   } catch(e) {
     console.error(e);
     document.getElementById("result").innerHTML = "Error scoring answer";
   }
 }
 
+function nextScenario() {
+  if(currentStep < scenarios.length - 1){
+    currentStep++;
+    updateScenario();
+  } else {
+    document.getElementById("scenario-text").innerHTML = "<h2>Workshop Complete!</h2>";
+    document.getElementById("answer").style.display = "none";
+    document.getElementById("next").style.display = "none";
+    document.getElementById("result").innerHTML += "<p>End of all scenarios. Click Restart to play again.</p>";
+    document.getElementById("restart").style.display = "inline-block";
+  }
+}
+
 function restartGame() {
-  document.getElementById("answer").value="";
-  document.getElementById("result").innerHTML="";
-  document.getElementById("restart").style.display="none";
+  currentStep = 0;
+  document.getElementById("answer").style.display = "block";
+  updateScenario();
+  document.getElementById("restart").style.display = "none";
 }
 </script>
 </body>
