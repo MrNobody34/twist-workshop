@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Twist Workshop</title>
-<!-- Tailwind CDN -->
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 font-sans">
@@ -31,7 +30,6 @@
 </div>
 
 <script>
-// Full descriptive scenarios
 const scenarios = [
   {
     title:"The Interruptor",
@@ -92,21 +90,47 @@ function updateScenario() {
 
 updateScenario();
 
-// Fake scoring logic for testing
-function fakeScore(answer) {
-  const len = answer.trim().length;
-  if(len < 10) return 40;
-  if(answer.toLowerCase().includes("bad") || answer.toLowerCase().includes("shit")) return 20;
-  if(answer.toLowerCase().includes("please") || answer.toLowerCase().includes("thank")) return 80;
+// Improved scoring
+function evaluateAnswer(answer){
+  const text = answer.toLowerCase();
+
+  // Check nonsense / empty
+  if(text.trim().length < 5 || text.match(/^(bla|test|asdf|123)+$/i)) return 40;
+
+  // Negative / aggressive words
+  const negative = ["shit","stupid","idiot","hate","useless","bad"];
+  for(const word of negative){
+    if(text.includes(word)) return 20;
+  }
+
+  // Polite / neutral
+  const neutral = ["ok","fine","noted","understood","yes","no"];
+  for(const word of neutral){
+    if(text.includes(word)) return 60;
+  }
+
+  // Empathy / constructive
+  const empathy = ["please","thank","suggest","could","might","recommend"];
+  for(const word of empathy){
+    if(text.includes(word)) return 80;
+  }
+
+  // Humor / bonding / positive
+  const positive = ["great","awesome","love","happy","fun","cheers","haha"];
+  for(const word of positive){
+    if(text.includes(word)) return 100;
+  }
+
+  // Default fallback
   return 60;
 }
 
 function getTip(score){
   switch(score){
     case 20: return "Your response is aggressive. Stay calm and polite.";
-    case 40: return "Polite but could be more helpful.";
-    case 60: return "Neutral response. Aim to add empathy.";
-    case 80: return "Good empathy! Try to add humor or warmth for 100.";
+    case 40: return "Polite but could be more helpful. Avoid nonsense answers.";
+    case 60: return "Neutral response. Aim to add empathy or constructive suggestions.";
+    case 80: return "Good empathy! Try to add humor or warmth for maximum effect.";
     case 100: return "Excellent! You turned the situation into a bonding moment.";
   }
 }
@@ -115,7 +139,7 @@ submitBtn.addEventListener("click", () => {
   const answer = answerInput.value.trim();
   if(!answer) return alert("Type your answer");
 
-  const score = fakeScore(answer);
+  const score = evaluateAnswer(answer);
   const tip = getTip(score);
   totalScore += score;
 
