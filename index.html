@@ -1,176 +1,100 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Twist Workshop</title>
-<script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-50 font-sans">
+// ===== CONFIG =====
+const TOTAL_SCENARIOS = 5;
+const MAX_SCORE_PER_SCENARIO = 100;
 
-<div class="min-h-screen flex items-center justify-center p-4 md:p-8">
-  <div class="w-full max-w-5xl bg-white rounded-3xl shadow-2xl p-8 md:p-16 text-center relative">
-
-    <h1 class="text-4xl md:text-5xl font-black mb-4">The <span class="text-indigo-600 italic">Twist</span> Workshop</h1>
-
-    <div id="scenario-text" class="text-xl text-slate-700 mb-2"></div>
-    <div id="scenario-context" class="text-sm text-slate-400 mb-6"></div>
-
-    <textarea id="answer" placeholder="Type your answer here..." class="w-full h-40 p-6 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-indigo-400 mb-4 resize-none text-lg"></textarea>
-
-    <button id="submitBtn" class="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-indigo-700 transition mb-4">Submit</button>
-
-    <div id="result" class="mt-6 text-center"></div>
-    <button id="nextBtn" class="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold mt-4 hover:bg-slate-800 transition hidden">Next Scenario</button>
-    <button id="restartBtn" class="bg-amber-500 text-white px-6 py-3 rounded-2xl font-bold mt-4 hover:bg-amber-600 transition hidden">Restart Game</button>
-
-    <div id="progress" class="mt-6 font-bold text-slate-500"></div>
-    <footer class="mt-8 text-sm text-slate-400">Created by Knowledge Team</footer>
-  </div>
-</div>
-
-<script>
-// ------------------- SCENARIOS -------------------
-const scenarios = [
-  {
-    title:"The Interruptor",
-    trigger:"You’re presenting an idea in a meeting. A colleague interrupts you (again) and says: 'This won’t work. We already tried something like this.'",
-    context:"This is a classic challenge to your authority and expertise in a public setting."
-  },
-  {
-    title:"The Last-Minute Pivot",
-    trigger:"You deliver a piece of work on time. A colleague replies: 'Actually, we need to change the whole approach. Can you redo it for tomorrow?'",
-    context:"This tests your boundaries and your ability to handle frustration regarding wasted effort."
-  },
-  {
-    title:"The Blame Game",
-    trigger:"A teammate messages you: 'Why is this late? This is blocking everyone.'",
-    context:"A direct digital attack that can easily trigger a defensive or aggressive counter-message."
-  },
-  {
-    title:"The Idea Thief",
-    trigger:"In a meeting, a colleague presents your idea as theirs. The manager reacts positively.",
-    context:"A high-stakes situation where your ego and professional recognition are at risk."
-  },
-  {
-    title:"The Broken Record",
-    trigger:"A colleague asks a question you feel you’ve already answered multiple times. You think: 'We’ve gone over this.'",
-    context:"A test of patience and your ability to avoid sounding condescending."
-  }
-];
-
-// ------------------- RUBRIC -------------------
-const RUBRIC = {
-  20:"Very rude / aggressive / insulting",
-  40:"Polite but dismissive / unhelpful",
-  60:"Neutral / professional / factual",
-  80:"Shows empathy + constructive suggestion",
-  100:"Turns conflict into bonding / uses humor or warmth"
-};
-
-// ------------------- VARIABLES -------------------
-let currentStep = 0;
+// ===== STATE =====
+let currentScenario = 0;
 let totalScore = 0;
 
-const scenarioText = document.getElementById("scenario-text");
-const scenarioContext = document.getElementById("scenario-context");
-const resultDiv = document.getElementById("result");
-const answerInput = document.getElementById("answer");
-const submitBtn = document.getElementById("submitBtn");
+// ===== DOM ELEMENTS =====
 const nextBtn = document.getElementById("nextBtn");
-const restartBtn = document.getElementById("restartBtn");
-const progressDiv = document.getElementById("progress");
+const scoreEl = document.getElementById("score");
+const scenarioEl = document.getElementById("scenario");
+const resultEl = document.getElementById("finalResult");
 
-// ------------------- UPDATE SCENARIO -------------------
-function updateScenario() {
-  const sc = scenarios[currentStep];
-  scenarioText.innerText = sc.trigger;
-  scenarioContext.innerText = sc.context;
-  progressDiv.innerText = `Scenario ${currentStep+1} of ${scenarios.length}`;
-  answerInput.value = "";
-  resultDiv.innerHTML = "";
-  nextBtn.classList.add("hidden");
-}
-updateScenario();
-
-// ------------------- SMART SCORING -------------------
-function evaluateAnswer(answer){
-  const text = answer.toLowerCase();
-
-  // Early filter for nonsense / short
-  if(text.trim().length < 5 || text.match(/^(bla|test|asdf|123)+$/i)) return 40;
-
-  // ------------------- KEYWORDS -------------------
-  const negative = ["shit","stupid","idiot","hate","useless","bad","ridiculous","angry","dumb","stop"];
-  const empathy   = ["please","thank","suggest","could","might","recommend","appreciate","understand","support"];
-  const positive  = ["great","awesome","love","happy","fun","cheers","haha","delighted","excited","celebrate","coffee","together","haha","lol"];
-  const neutral   = ["ok","fine","noted","understood","yes","no","this","i’m","the","whatever"];
-
-  // ------------------- DETECT -------------------
-  const containsAny = (list) => list.some(w => text.includes(w));
-
-  if(containsAny(negative)) return 20;     // Any negative word → 20
-  if(containsAny(positive)) return 100;    // Any positive/humor word → 100
-  if(containsAny(empathy)) return 80;      // Any empathy → 80
-  if(containsAny(neutral)) return 60;      // Neutral → 60
-  return 40;                                // fallback
+// ===== SCORING =====
+function addScore(points) {
+  totalScore += points;
+  scoreEl.textContent = `${totalScore} / ${TOTAL_SCENARIOS * MAX_SCORE_PER_SCENARIO}`;
 }
 
-function getTip(score){
-  switch(score){
-    case 20: return "Your response is aggressive. Stay calm and polite.";
-    case 40: return "Polite but could be more helpful. Avoid nonsense answers.";
-    case 60: return "Neutral response. Aim to add empathy or constructive suggestions.";
-    case 80: return "Good empathy! Try to add humor or warmth for maximum effect.";
-    case 100: return "Excellent! You turned the situation into a bonding moment.";
-  }
-}
-
-// ------------------- BUTTON EVENTS -------------------
-submitBtn.addEventListener("click", () => {
-  const answer = answerInput.value.trim();
-  if(!answer) return alert("Type your answer");
-
-  const score = evaluateAnswer(answer);
-  const tip = getTip(score);
-  totalScore += score;
-
-  const color = score === 20 ? "bg-red-500" :
-                score === 40 ? "bg-yellow-500" :
-                score === 60 ? "bg-blue-500" :
-                score === 80 ? "bg-green-500" :
-                "bg-pink-500";
-
-  resultDiv.innerHTML = `<div class="p-4 rounded-xl text-white font-bold ${color}">
-    Score: ${score}<br>Tip: ${tip}
-  </div>`;
-
-  nextBtn.classList.remove("hidden");
-});
-
+// ===== NAVIGATION =====
 nextBtn.addEventListener("click", () => {
-  if(currentStep < scenarios.length-1){
-    currentStep++;
-    updateScenario();
+  if (currentScenario < TOTAL_SCENARIOS - 1) {
+    currentScenario++;
+    loadScenario(currentScenario);
+
+    if (currentScenario === TOTAL_SCENARIOS - 1) {
+      nextBtn.textContent = "See Your Final Twist Badge";
+    }
   } else {
-    scenarioText.innerHTML = "<h2>Workshop Complete!</h2>";
-    scenarioContext.innerHTML = "";
-    answerInput.style.display = "none";
-    submitBtn.style.display = "none";
-    nextBtn.style.display = "none";
-    restartBtn.classList.remove("hidden");
-    resultDiv.innerHTML = `<p class="mt-4 font-bold text-xl">Your total score: ${totalScore}</p>`;
+    showFinalResult();
   }
 });
 
-restartBtn.addEventListener("click", () => {
-  currentStep = 0;
-  totalScore = 0;
-  answerInput.style.display = "block";
-  submitBtn.style.display = "inline-block";
-  restartBtn.classList.add("hidden");
-  updateScenario();
+// ===== SCENARIO LOADER =====
+function loadScenario(index) {
+  scenarioEl.textContent = `Scenario ${index + 1}`;
+}
+
+// ===== FINAL RESULT =====
+function showFinalResult() {
+  nextBtn.style.display = "none";
+  scenarioEl.style.display = "none";
+
+  const badge = getBadge(totalScore);
+
+  resultEl.innerHTML = `
+    <div class="badge">
+      <h2>${badge.icon} ${badge.title}</h2>
+      <p>${badge.text}</p>
+      <strong>Your Twist Score: ${totalScore} / 500</strong>
+      <p class="note">Just like real conversations, this was one take only.</p>
+    </div>
+  `;
+
+  resultEl.style.display = "block";
+}
+
+// ===== BADGE LOGIC =====
+function getBadge(score) {
+  if (score === 500) {
+    return {
+      icon: "🧪",
+      title: "The Alchemist",
+      text: "You turned every spark into connection. Legend behavior."
+    };
+  }
+  if (score >= 400) {
+    return {
+      icon: "🌀",
+      title: "The Twist Master",
+      text: "Empathy, clarity, and timing — dangerous combo."
+    };
+  }
+  if (score >= 300) {
+    return {
+      icon: "🧭",
+      title: "The Clear Communicator",
+      text: "You say what you mean. Now add more twist."
+    };
+  }
+  if (score >= 200) {
+    return {
+      icon: "🧊",
+      title: "The Polite Wall",
+      text: "Professional, correct — emotionally bulletproof."
+    };
+  }
+  return {
+    icon: "🧨",
+    title: "The Unfiltered Reactor",
+    text: "Fast reactions. Twists still loading."
+  };
+}
+
+// ===== REFRESH WARNING =====
+window.addEventListener("beforeunload", (e) => {
+  e.preventDefault();
+  e.returnValue = "";
 });
-</script>
-</body>
-</html>
