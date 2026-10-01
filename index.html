@@ -117,15 +117,8 @@ Scenario Trigger: "${trigger}"
 Scenario Context: "${context}"
 User Twist: "${answer}"
 
-Return strictly a single valid JSON object. Do not wrap in markdown or backticks. Schema:
-{
-  "score": 85,
-  "hasSoftEntry": true,
-  "hasValueFocus": true,
-  "isCleanTone": true,
-  "feedback": "Concise coaching advice.",
-  "improvedExample": "Polished twist alternative."
-}`;
+You MUST respond strictly with a valid JSON object in this exact format, with NO markdown formatting:
+{"score": 85, "hasSoftEntry": true, "hasValueFocus": true, "isCleanTone": true, "feedback": "Great validation of priorities.", "improvedExample": "I hear the urgency..."}`;
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${GEMINI_API_KEY}`;
 
@@ -134,7 +127,10 @@ Return strictly a single valid JSON object. Do not wrap in markdown or backticks
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }] })
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: systemPrompt }] }],
+          generationConfig: { responseMimeType: "application/json" }
+        })
       });
 
       if (response.status === 429 || response.status === 503) {
@@ -148,23 +144,23 @@ Return strictly a single valid JSON object. Do not wrap in markdown or backticks
       }
 
       const data = await response.json();
-      let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
 
-      // Regex extraction to cleanly locate the JSON object inside the raw output
-      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("AI returned invalid response structure. Please try submitting again.");
+      let parsed = {};
+      try {
+        parsed = JSON.parse(rawText);
+      } catch (e) {
+        const match = rawText.match(/\{[\s\S]*\}/);
+        if (match) parsed = JSON.parse(match[0]);
       }
 
-      const result = JSON.parse(jsonMatch[0]);
-
       return {
-        score: typeof result.score === 'number' ? result.score : 70,
-        hasSoftEntry: Boolean(result.hasSoftEntry),
-        hasValueFocus: Boolean(result.hasValueFocus),
-        isCleanTone: Boolean(result.isCleanTone),
-        feedback: result.feedback || "Good effort! Keep practicing your soft entry and value framing.",
-        improvedExample: result.improvedExample || "Try starting with validation before stating your boundary."
+        score: Number(parsed.score) || 75,
+        hasSoftEntry: Boolean(parsed.hasSoftEntry),
+        hasValueFocus: Boolean(parsed.hasValueFocus),
+        isCleanTone: Boolean(parsed.isCleanTone),
+        feedback: String(parsed.feedback || "Good attempt at applying the Twist methodology."),
+        improvedExample: String(parsed.improvedExample || "I hear your concern. To ensure we maintain quality, let's review priorities together.")
       };
 
     } catch (err) {
