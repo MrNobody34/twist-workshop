@@ -1,66 +1,60 @@
-// api/evaluate.js
-module.exports = async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-  if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
-
-  const { scenario, answer } = req.body;
-  if (!scenario || !answer) return res.status(400).json({ error: "Missing scenario or answer" });
+export default async function handler(req, res) {
+  // Only allow POST requests
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
   try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4.1-mini",
-        messages: [
-          { role: "system", content: `
-You are an expert corporate communication coach and judge for "The Twist Workshop".
-Your task is to evaluate a participant's response to a "Hot Situation" based on tone, emotional intelligence, and ability to avoid friction.
+    const { scenarioTrigger, scenarioContext, userTwist } = req.body;
+    const apiKey = process.env.GEMINI_API_KEY;
 
-Follow these rules:
-- Score according to this rubric:
-  20: Rude, insulting, aggressive
-  40: Polite but dismissive / unhelpful
-  60: Neutral / professional / factual
-  80: Shows empathy + constructive suggestion
-  100: Turns conflict into bonding / uses humor/warmth / excellent EQ
+    if (!apiKey) {
+      return res.status(500).json({ error: 'Missing GEMINI_API_KEY environment variable' });
+    }
 
-- Always respond in JSON exactly like this:
-  { "score": number, "tip": string }
+    const systemPrompt = `
+You are an expert executive coach evaluating responses for a workplace communication workshop called "Twist and Shout".
+The core methodology is:
+1. "Soft Entry" / Validation: Acknowledging the other person's perspective or situation before responding (e.g., "I hear that...", "I see where you're coming from...").
+2. Core Value Focus: Expressing underlying needs (efficiency, clarity, quality, workload capacity) rather than emotional irritation.
+3. Constructive Twist: Moving the conversation forward collaboratively without defensive trigger words (e.g., avoid "as I said", "obviously", "per my email").
 
-- Make the tip specific to the answer and include one sentence advice to reach 100.
-- Do NOT include extra text outside JSON.
-` },
-          { role: "user", content: `
-Scenario:
-${scenario}
+Evaluate the participant's "Twist" based on the scenario provided.
 
-Participant response:
-"${answer}"
-` }
-        ],
-        temperature: 0
-      })
-    });
+SCENARIO TRIGGER: "${scenarioTrigger}"
+SCENARIO CONTEXT: "${scenarioContext}"
+USER TWIST: "${userTwist}"
+
+Return strictly a raw JSON object (no Markdown formatting or code blocks) with this schema:
+{
+  "score": number (0 to 100),
+  "hasSoftEntry": boolean,
+  "hasValueFocus": boolean,
+  "isCleanTone": boolean,
+  "feedback": "Concise 1-2 sentence constructive coaching feedback.",
+  "improvedExample": "An ideal, polished Twist for this specific situation."
+}
+`;
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: systemPrompt }] }],
+          generationConfig: { responseMimeType: 'application/json' }
+        })
+      }
+    );
 
     const data = await response.json();
-    let content = data.choices?.[0]?.message?.content || "{}";
+    const rawText = data.candidates[0].content.parts[0].text;
+    const result = JSON.parse(rawText);
 
-    let output;
-    try { output = JSON.parse(content); }
-    catch { output = { score: 60, tip: "The AI could not parse the response, defaulting to 60." }; }
-
-    res.status(200).json({ score: output.score || 60, tip: output.tip || "No tip provided." });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ score: 60, tip: "AI evaluation failed, defaulting to 60." });
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('API Error:', error);
+    return res.status(500).json({ error: 'Failed to evaluate Twist' });
   }
-};
+}
