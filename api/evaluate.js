@@ -1,5 +1,5 @@
-export default async function handler(req, res) {
-  // Allow CORS
+module.exports = async (req, res) => {
+  // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -17,65 +17,46 @@ export default async function handler(req, res) {
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      console.error('GEMINI_API_KEY is missing');
-      return res.status(500).json({ error: 'Missing GEMINI_API_KEY in Vercel settings' });
+      return res.status(500).json({ error: 'Missing GEMINI_API_KEY' });
     }
 
-    const systemPrompt = `You are an expert executive coach evaluating responses for a workplace communication workshop called "Twist and Shout".
-The core methodology is:
-1. "Soft Entry" / Validation: Acknowledging the other person's perspective or situation before responding (e.g., "I hear that...", "I see where you're coming from...").
-2. Core Value Focus: Expressing underlying needs (efficiency, clarity, quality, workload capacity) rather than emotional irritation.
-3. Constructive Twist: Moving the conversation forward collaboratively without defensive trigger words (e.g., avoid "as I said", "obviously", "per my email").
+    const systemPrompt = `You are an executive coach evaluating responses for the workshop "Twist and Shout".
+Methodology:
+1. Soft Entry / Validation (acknowledging perspective).
+2. Core Value Focus (quality, capacity, time, efficiency).
+3. Constructive Twist (collaborative, free of passive-aggressive words like "obviously", "as I said").
 
-Evaluate the participant's "Twist" based on the scenario provided.
+Scenario Trigger: "${scenarioTrigger || ''}"
+Scenario Context: "${scenarioContext || ''}"
+User Twist: "${userTwist || ''}"
 
-SCENARIO TRIGGER: "${scenarioTrigger || ''}"
-SCENARIO CONTEXT: "${scenarioContext || ''}"
-USER TWIST: "${userTwist || ''}"
-
-Return strictly a raw valid JSON object (NO markdown, NO code block formatting like \`\`\`json) with this exact schema:
+Return ONLY a raw JSON object (no markdown, no backticks) with this structure:
 {
   "score": 85,
   "hasSoftEntry": true,
   "hasValueFocus": true,
   "isCleanTone": true,
-  "feedback": "Concise 1-2 sentence constructive coaching feedback.",
-  "improvedExample": "An ideal, polished Twist for this specific situation."
+  "feedback": "Short coaching advice.",
+  "improvedExample": "A polished twist alternative."
 }`;
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     const apiResponse = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: systemPrompt }
-            ]
-          }
-        ]
+        contents: [{ parts: [{ text: systemPrompt }] }]
       })
     });
 
-    if (!apiResponse.ok) {
-      const errText = await apiResponse.text();
-      console.error('Gemini API Error:', errText);
-      return res.status(apiResponse.status).json({ error: 'Gemini API Error', details: errText });
-    }
-
     const data = await apiResponse.json();
-    
-    if (!data.candidates || !data.candidates[0]?.content?.parts[0]?.text) {
-      return res.status(500).json({ error: 'Invalid response structure from Gemini API' });
+
+    if (!apiResponse.ok) {
+      return res.status(apiResponse.status).json({ error: 'Gemini API Error', details: data });
     }
 
     let rawText = data.candidates[0].content.parts[0].text.trim();
-    
-    // Clean markdown code fence formatting if returned
     if (rawText.startsWith('```')) {
       rawText = rawText.replace(/^```(json)?\n?/, '').replace(/\n?```$/, '').trim();
     }
@@ -84,7 +65,6 @@ Return strictly a raw valid JSON object (NO markdown, NO code block formatting l
     return res.status(200).json(result);
 
   } catch (error) {
-    console.error('Handler error:', error);
-    return res.status(500).json({ error: 'Server evaluation failed', message: error.message });
+    return res.status(500).json({ error: 'Server Evaluation Error', message: error.message });
   }
-}
+};
