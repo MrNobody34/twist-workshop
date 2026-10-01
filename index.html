@@ -45,31 +45,28 @@
 const scenarios = [
   {
     title: "The Interruptor",
-    trigger: "In a meeting, a colleague interrupts: 'This won't work. We already tried something like this.'",
-    context: "Raw Instinct: Wanting to snap back or defend your authority.",
-    valueFocus: "Respect for process, Openness, Efficiency",
-    exampleTwist: "I hear your concern about past experiences. To make sure we don't repeat mistakes, I'd love to share the new adjustments we made before we decide."
+    trigger: "You’re presenting an idea in a meeting. A colleague interrupts you (again) and says: 'This won’t work. We already tried something like this.'",
+    context: "This is a classic challenge to your authority and expertise in a public setting."
   },
   {
     title: "The Last-Minute Pivot",
-    trigger: "You submit work on time. A colleague replies: 'Actually, we need to change the whole approach. Can you redo it for tomorrow?'",
-    context: "Raw Instinct: Frustration over wasted effort and tight deadlines.",
-    valueFocus: "Capacity, Work Quality, Manageable Timing",
-    exampleTwist: "I see where you're coming from regarding the shift in approach. To deliver the quality this needs without rushing, let's discuss what we can prioritize for tomorrow."
+    trigger: "You deliver a piece of work on time. A colleague replies: 'Actually, we need to change the whole approach. Can you redo it for tomorrow?'",
+    context: "This tests your boundaries and your ability to handle frustration regarding wasted effort."
   },
   {
     title: "The Blame Game",
-    trigger: "A teammate messages publicly: 'Why is this late? This is blocking everyone.'",
-    context: "Raw Instinct: Getting defensive or firing back an excuse.",
-    valueFocus: "Clarity, Alignment, Teamwork",
-    exampleTwist: "I understand the urgency to move forward. I'm finalizing the last section now to ensure accuracy and will send it over in 20 minutes."
+    trigger: "A teammate messages you: 'Why is this late? This is blocking everyone.'",
+    context: "A direct digital attack that can easily trigger a defensive or aggressive counter-message."
+  },
+  {
+    title: "The Idea Thief",
+    trigger: "In a meeting, a colleague presents your idea as theirs. The manager reacts positively.",
+    context: "A high-stakes situation where your ego and professional recognition are at risk."
   },
   {
     title: "The Broken Record",
-    trigger: "A colleague asks a question you answered 10 minutes ago in an email.",
-    context: "Raw Instinct: Saying 'As I mentioned in my email...'",
-    valueFocus: "Time Management, Clarity",
-    exampleTwist: "I know there's a lot of information circulating right now. I highlighted those details in section 2 of the email—let me know if anything needs extra clarification!"
+    trigger: "A colleague asks a question you feel you’ve already answered multiple times. You think: 'We’ve gone over this.'",
+    context: "A test of patience and your ability to avoid sounding condescending."
   }
 ];
 
@@ -99,88 +96,73 @@ function updateScenario() {
   inputContainer.classList.remove("hidden");
   submitBtn.disabled = false;
 
-  nextBtn.innerText = currentStep === scenarios.length - 1 ? "See Workshop Results 🏁" : "Next Scenario →";
+  nextBtn.innerText = currentStep === scenarios.length - 1 ? "See Final Results 🏁" : "Next Scenario →";
 }
 
-// ------------------- SMART EVALUATION ENGINE -------------------
-function evaluateAnswer(answer) {
-  const text = answer.toLowerCase().trim();
-  
-  if (text.length < 12) {
-    return { score: 20, softEntry: false, valueStated: false, passiveAggressive: false, msg: "Response is too short to be an effective Twist." };
-  }
+// Call backend API
+async function evaluateWithAI(trigger, context, answer) {
+  const response = await fetch('/api/evaluate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ scenarioTrigger: trigger, scenarioContext: context, userTwist: answer })
+  });
 
-  // 1. Soft Entry Check (Validation phrases)
-  const softEntryKeywords = ["i understand", "i hear", "i see", "i appreciate", "i know", "completely understand", "makes sense", "fair point"];
-  const hasSoftEntry = softEntryKeywords.some(kw => text.includes(kw));
-
-  // 2. Value / Need Focus Check
-  const valueKeywords = ["quality", "priority", "prioritize", "capacity", "clarity", "time", "focus", "align", "alignment", "together", "support", "goal", "ensure", "accuracy", "structure"];
-  const hasValue = valueKeywords.some(kw => text.includes(kw));
-
-  // 3. Passive-Aggressive & Defensive Trigger Words
-  const paKeywords = ["as i said", "as mentioned", "obviously", "again", "per my email", "you should have", "not my job", "already told you", "why didn't you", "actually"];
-  const hasPA = paKeywords.some(kw => text.includes(kw));
-
-  let score = 40; // Base score
-  if (hasSoftEntry) score += 30;
-  if (hasValue) score += 30;
-  if (hasPA) score -= 30;
-
-  score = Math.max(20, Math.min(100, score));
-
-  return {
-    score,
-    softEntry: hasSoftEntry,
-    valueStated: hasValue,
-    passiveAggressive: hasPA
-  };
+  if (!response.ok) throw new Error('Evaluation failed');
+  return await response.json();
 }
 
-// ------------------- EVENT HANDLERS -------------------
-submitBtn.addEventListener("click", () => {
+submitBtn.addEventListener("click", async () => {
   const answer = answerInput.value.trim();
-  if (!answer) return alert("Please write a response first!");
+  if (!answer) return alert("Please type your answer first!");
 
-  const sc = scenarios[currentStep];
-  const evalResult = evaluateAnswer(answer);
-  totalScore += evalResult.score;
+  submitBtn.disabled = true;
+  submitBtn.innerText = "Analyzing with AI Coach... 🧠";
 
-  // Build Diagnostic Feedback UI
-  resultDiv.classList.remove("hidden");
-  resultDiv.innerHTML = `
-    <div class="p-6 rounded-2xl bg-slate-900 text-white space-y-4">
-      <div class="flex justify-between items-center border-b border-slate-700 pb-3">
-        <span class="text-lg font-bold">Twist Analysis</span>
-        <span class="text-2xl font-black ${evalResult.score >= 80 ? 'text-green-400' : evalResult.score >= 50 ? 'text-yellow-400' : 'text-red-400'}">${evalResult.score}/100</span>
-      </div>
+  try {
+    const sc = scenarios[currentStep];
+    const res = await evaluateWithAI(sc.trigger, sc.context, answer);
+    totalScore += res.score;
 
-      <!-- Checklist -->
-      <div class="space-y-2 text-sm">
-        <div class="flex items-center gap-2">
-          <span>${evalResult.softEntry ? '✅' : '❌'}</span>
-          <span class="${evalResult.softEntry ? 'text-slate-200' : 'text-slate-400'}">Soft Entry (Validation Phrase)</span>
+    resultDiv.classList.remove("hidden");
+    resultDiv.innerHTML = `
+      <div class="p-6 rounded-2xl bg-slate-900 text-white space-y-4">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+          <span class="text-lg font-bold">AI Coach Analysis</span>
+          <span class="text-2xl font-black ${res.score >= 80 ? 'text-green-400' : res.score >= 50 ? 'text-yellow-400' : 'text-red-400'}">${res.score}/100</span>
         </div>
-        <div class="flex items-center gap-2">
-          <span>${evalResult.valueStated ? '✅' : '❌'}</span>
-          <span class="${evalResult.valueStated ? 'text-slate-200' : 'text-slate-400'}">Core Value / Need Stated (Quality, Capacity, Time)</span>
+
+        <div class="space-y-2 text-sm">
+          <div class="flex items-center gap-2">
+            <span>${res.hasSoftEntry ? '✅' : '❌'}</span>
+            <span>Soft Entry (Validation phrase)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span>${res.hasValueFocus ? '✅' : '❌'}</span>
+            <span>Stated Value / Need (Quality, Capacity, Efficiency)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span>${res.isCleanTone ? '✅' : '⚠️'}</span>
+            <span>Clean Tone (Free of defensive trigger words)</span>
+          </div>
         </div>
-        <div class="flex items-center gap-2">
-          <span>${!evalResult.passiveAggressive ? '✅' : '⚠️'}</span>
-          <span class="${!evalResult.passiveAggressive ? 'text-slate-200' : 'text-amber-400 font-bold'}">${evalResult.passiveAggressive ? 'Warning: Contains passive-aggressive phrasing ("as I said", "obviously", etc.)' : 'Clean Tone (No defensive triggers)'}</span>
+
+        <p class="text-sm text-slate-300 italic bg-slate-800 p-3 rounded-xl border border-slate-700">"${res.feedback}"</p>
+
+        <div class="mt-2 p-3 bg-indigo-950/60 rounded-xl border border-indigo-800 text-xs text-indigo-200">
+          <span class="font-bold block mb-1">💡 Polished Alternative:</span>
+          "${res.improvedExample}"
         </div>
       </div>
+    `;
 
-      <!-- Suggested Polish -->
-      <div class="mt-4 p-4 bg-slate-800 rounded-xl border border-slate-700 text-xs text-slate-300">
-        <span class="font-bold text-indigo-400 block mb-1">💡 Ideal Workshop Twist Example:</span>
-        "${sc.exampleTwist}"
-      </div>
-    </div>
-  `;
-
-  inputContainer.classList.add("hidden");
-  nextBtn.classList.remove("hidden");
+    inputContainer.classList.add("hidden");
+    nextBtn.classList.remove("hidden");
+  } catch (err) {
+    alert("Could not evaluate. Please check that GEMINI_API_KEY is set in Vercel.");
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerText = "Evaluate My Twist 🧪";
+  }
 });
 
 nextBtn.addEventListener("click", () => {
@@ -188,7 +170,6 @@ nextBtn.addEventListener("click", () => {
     currentStep++;
     updateScenario();
   } else {
-    // Final Results Screen
     inputContainer.classList.add("hidden");
     resultDiv.classList.remove("hidden");
     nextBtn.classList.add("hidden");
@@ -203,18 +184,11 @@ nextBtn.addEventListener("click", () => {
         <div class="text-6xl">${avgScore >= 80 ? '🦄' : avgScore >= 60 ? '🧙‍♂️' : '🧪'}</div>
         <div class="text-3xl font-black">${avgScore >= 80 ? 'Master of The Twist' : avgScore >= 60 ? 'Diplomatic Communicator' : 'Work in Progress'}</div>
         <p class="text-indigo-100 italic">Overall Workshop Score: ${avgScore} / 100</p>
-        <div class="text-sm bg-indigo-700 p-4 rounded-xl text-left space-y-1">
-          <p><strong>Key Takeaways:</strong></p>
-          <p>• Always start with a <strong>Soft Entry</strong> to lower defensiveness.</p>
-          <p>• Express your <strong>Underlying Need</strong>, not your emotional frustration.</p>
-          <p>• Avoid defensive trigger words like <em>"As I mentioned"</em> or <em>"Obviously"</em>.</p>
-        </div>
       </div>
     `;
   }
 });
 
-// Initialize first scenario
 updateScenario();
 </script>
 </body>
