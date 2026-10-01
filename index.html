@@ -42,8 +42,8 @@
 </div>
 
 <script>
-// ⚠️ Paste your Gemini API key here between the quotes
-const GEMINI_API_KEY = "AQ.Ab8RN6IuTnlYxwN1B9ZGN0lJZtcqRr5hIXT03DqqtJxNHvbDvA";
+// Paste your Gemini API key here
+const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE";
 
 const scenarios = [
   {
@@ -117,7 +117,7 @@ Scenario Trigger: "${trigger}"
 Scenario Context: "${context}"
 User Twist: "${answer}"
 
-Return ONLY a raw JSON object with NO markdown or backticks:
+Return ONLY a raw JSON object with NO markdown formatting or backticks:
 {
   "score": 85,
   "hasSoftEntry": true,
@@ -127,7 +127,7 @@ Return ONLY a raw JSON object with NO markdown or backticks:
   "improvedExample": "Polished twist alternative."
 }`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
   const response = await fetch(url, {
     method: 'POST',
