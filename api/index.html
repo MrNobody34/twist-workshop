@@ -4,61 +4,192 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Twist Workshop</title>
-<style>
-  body { font-family: sans-serif; background: #f0f4f8; color: #333; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin:0; }
-  .container { background: white; border-radius: 2rem; padding: 2rem; max-width: 600px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align:center; }
-  textarea { width: 100%; height: 120px; border-radius: 1rem; border:1px solid #ccc; padding:1rem; font-size:1rem; resize:none; }
-  button { margin-top: 1rem; padding: 0.8rem 1.2rem; font-size:1rem; border:none; border-radius:1rem; background:#6366f1; color:white; cursor:pointer; transition:0.2s; }
-  button:hover { background:#4f46e5; }
-  .score-box { margin-top:1rem; padding:1rem; border-radius:1rem; font-weight:bold; }
-  .score-20 { background:#f87171; color:white; }
-  .score-40 { background:#fbbf24; color:white; }
-  .score-50 { background:#60a5fa; color:white; }
-  .score-60 { background:#38bdf8; color:white; }
-  .score-80 { background:#34d399; color:white; }
-  .score-100 { background:#f472b6; color:white; }
-  footer { margin-top:2rem; font-size:0.8rem; color:#888; }
-</style>
+<script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-<div class="container">
-  <h1>The Twist Workshop</h1>
-  <p>Type your answer here:</p>
-  <textarea id="answer"></textarea>
-  <button onclick="submitAnswer()">Submit</button>
-  <div id="result"></div>
-  <button onclick="restartGame()" id="restart" style="display:none;">Restart Game</button>
-  <footer>Created by Knowledge Team</footer>
+<body class="bg-slate-100 font-sans text-slate-800">
+
+<div class="min-h-screen flex items-center justify-center p-4 md:p-8">
+  <div class="w-full max-w-3xl bg-white rounded-3xl shadow-xl p-6 md:p-12 relative border border-slate-200">
+
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6 border-b pb-4">
+      <h1 class="text-2xl md:text-3xl font-black text-slate-900">The <span class="text-indigo-600 italic">Twist</span> Engine</h1>
+      <div id="progress" class="text-xs font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full border border-indigo-100"></div>
+    </div>
+
+    <!-- Scenario Section -->
+    <div class="mb-6 bg-slate-50 p-6 rounded-2xl border border-slate-200">
+      <span id="scenario-title" class="inline-block bg-indigo-600 text-white text-xs font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wide mb-2"></span>
+      <h2 id="scenario-text" class="text-lg md:text-xl font-bold text-slate-800 mb-2"></h2>
+      <p id="scenario-context" class="text-sm text-slate-500 italic"></p>
+    </div>
+
+    <!-- Input Form -->
+    <div id="input-container">
+      <label class="block text-sm font-bold text-slate-700 mb-2">Your Twist (Soft Entry + Stated Value + Forward Step):</label>
+      <textarea id="answer" placeholder="e.g., I hear the urgency in your message. To make sure we don't compromise quality, let's review priorities together..." class="w-full h-36 p-4 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 mb-4 resize-none text-base transition"></textarea>
+
+      <button id="submitBtn" class="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-md hover:shadow-lg">Evaluate My Twist 🧪</button>
+    </div>
+
+    <!-- Results Breakdown -->
+    <div id="result" class="mt-6 hidden"></div>
+
+    <button id="nextBtn" class="w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold text-lg mt-4 hover:bg-slate-800 transition hidden shadow-md"></button>
+
+    <footer class="mt-8 text-center text-xs text-slate-400">Knowledge Team • Customer Care Enablement</footer>
+  </div>
 </div>
 
 <script>
-const scenario = "Scenario 2: A colleague asks for a last-minute change";
-
-async function submitAnswer() {
-  const answer = document.getElementById("answer").value.trim();
-  if(!answer) return alert("Please type your answer");
-
-  document.getElementById("result").innerHTML = "Scoring...";
-  try {
-    const res = await fetch("https://twist-workshop.vercel.app/api/evaluate", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({ scenario, answer })
-    });
-    const data = await res.json();
-    document.getElementById("result").innerHTML = `<div class="score-box score-${data.score}">Score: ${data.score}<br>Tip: ${data.tip}</div>`;
-    document.getElementById("restart").style.display="inline-block";
-  } catch(e) {
-    console.error(e);
-    document.getElementById("result").innerHTML = "Error scoring answer";
+const scenarios = [
+  {
+    title: "The Interruptor",
+    trigger: "You’re presenting an idea in a meeting. A colleague interrupts you (again) and says: 'This won’t work. We already tried something like this.'",
+    context: "This is a classic challenge to your authority and expertise in a public setting."
+  },
+  {
+    title: "The Last-Minute Pivot",
+    trigger: "You deliver a piece of work on time. A colleague replies: 'Actually, we need to change the whole approach. Can you redo it for tomorrow?'",
+    context: "This tests your boundaries and your ability to handle frustration regarding wasted effort."
+  },
+  {
+    title: "The Blame Game",
+    trigger: "A teammate messages you: 'Why is this late? This is blocking everyone.'",
+    context: "A direct digital attack that can easily trigger a defensive or aggressive counter-message."
+  },
+  {
+    title: "The Idea Thief",
+    trigger: "In a meeting, a colleague presents your idea as theirs. The manager reacts positively.",
+    context: "A high-stakes situation where your ego and professional recognition are at risk."
+  },
+  {
+    title: "The Broken Record",
+    trigger: "A colleague asks a question you feel you’ve already answered multiple times. You think: 'We’ve gone over this.'",
+    context: "A test of patience and your ability to avoid sounding condescending."
   }
+];
+
+let currentStep = 0;
+let totalScore = 0;
+
+const scenarioTitle = document.getElementById("scenario-title");
+const scenarioText = document.getElementById("scenario-text");
+const scenarioContext = document.getElementById("scenario-context");
+const resultDiv = document.getElementById("result");
+const answerInput = document.getElementById("answer");
+const submitBtn = document.getElementById("submitBtn");
+const nextBtn = document.getElementById("nextBtn");
+const progressDiv = document.getElementById("progress");
+const inputContainer = document.getElementById("input-container");
+
+function updateScenario() {
+  const sc = scenarios[currentStep];
+  scenarioTitle.innerText = sc.title;
+  scenarioText.innerText = `"${sc.trigger}"`;
+  scenarioContext.innerText = sc.context;
+  progressDiv.innerText = `Scenario ${currentStep + 1} / ${scenarios.length}`;
+  answerInput.value = "";
+  resultDiv.innerHTML = "";
+  resultDiv.classList.add("hidden");
+  nextBtn.classList.add("hidden");
+  inputContainer.classList.remove("hidden");
+  submitBtn.disabled = false;
+
+  nextBtn.innerText = currentStep === scenarios.length - 1 ? "See Final Results 🏁" : "Next Scenario →";
 }
 
-function restartGame() {
-  document.getElementById("answer").value="";
-  document.getElementById("result").innerHTML="";
-  document.getElementById("restart").style.display="none";
+// Call backend API
+async function evaluateWithAI(trigger, context, answer) {
+  const response = await fetch('/api/evaluate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ scenarioTrigger: trigger, scenarioContext: context, userTwist: answer })
+  });
+
+  if (!response.ok) throw new Error('Evaluation failed');
+  return await response.json();
 }
+
+submitBtn.addEventListener("click", async () => {
+  const answer = answerInput.value.trim();
+  if (!answer) return alert("Please type your answer first!");
+
+  submitBtn.disabled = true;
+  submitBtn.innerText = "Analyzing with AI Coach... 🧠";
+
+  try {
+    const sc = scenarios[currentStep];
+    const res = await evaluateWithAI(sc.trigger, sc.context, answer);
+    totalScore += res.score;
+
+    resultDiv.classList.remove("hidden");
+    resultDiv.innerHTML = `
+      <div class="p-6 rounded-2xl bg-slate-900 text-white space-y-4">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+          <span class="text-lg font-bold">AI Coach Analysis</span>
+          <span class="text-2xl font-black ${res.score >= 80 ? 'text-green-400' : res.score >= 50 ? 'text-yellow-400' : 'text-red-400'}">${res.score}/100</span>
+        </div>
+
+        <div class="space-y-2 text-sm">
+          <div class="flex items-center gap-2">
+            <span>${res.hasSoftEntry ? '✅' : '❌'}</span>
+            <span>Soft Entry (Validation phrase)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span>${res.hasValueFocus ? '✅' : '❌'}</span>
+            <span>Stated Value / Need (Quality, Capacity, Efficiency)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span>${res.isCleanTone ? '✅' : '⚠️'}</span>
+            <span>Clean Tone (Free of defensive trigger words)</span>
+          </div>
+        </div>
+
+        <p class="text-sm text-slate-300 italic bg-slate-800 p-3 rounded-xl border border-slate-700">"${res.feedback}"</p>
+
+        <div class="mt-2 p-3 bg-indigo-950/60 rounded-xl border border-indigo-800 text-xs text-indigo-200">
+          <span class="font-bold block mb-1">💡 Polished Alternative:</span>
+          "${res.improvedExample}"
+        </div>
+      </div>
+    `;
+
+    inputContainer.classList.add("hidden");
+    nextBtn.classList.remove("hidden");
+  } catch (err) {
+    alert("Could not evaluate. Please check that GEMINI_API_KEY is set in Vercel.");
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerText = "Evaluate My Twist 🧪";
+  }
+});
+
+nextBtn.addEventListener("click", () => {
+  if (currentStep < scenarios.length - 1) {
+    currentStep++;
+    updateScenario();
+  } else {
+    inputContainer.classList.add("hidden");
+    resultDiv.classList.remove("hidden");
+    nextBtn.classList.add("hidden");
+    scenarioTitle.innerText = "Workshop Complete";
+    scenarioText.innerText = "Your Final Twist Evaluation";
+    scenarioContext.innerText = "";
+
+    const avgScore = Math.round(totalScore / scenarios.length);
+    
+    resultDiv.innerHTML = `
+      <div class="p-8 bg-indigo-600 text-white rounded-3xl text-center space-y-4 shadow-xl">
+        <div class="text-6xl">${avgScore >= 80 ? '🦄' : avgScore >= 60 ? '🧙‍♂️' : '🧪'}</div>
+        <div class="text-3xl font-black">${avgScore >= 80 ? 'Master of The Twist' : avgScore >= 60 ? 'Diplomatic Communicator' : 'Work in Progress'}</div>
+        <p class="text-indigo-100 italic">Overall Workshop Score: ${avgScore} / 100</p>
+      </div>
+    `;
+  }
+});
+
+updateScenario();
 </script>
 </body>
 </html>
