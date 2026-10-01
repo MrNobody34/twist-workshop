@@ -107,7 +107,7 @@ async function evaluateDirectWithGemini(trigger, context, answer, retries = 3) {
     throw new Error("Missing API Key inside index.html");
   }
 
-  const systemPrompt = `You are an executive coach evaluating responses for a workshop called "Twist and Shout".
+  const promptText = `You are an executive coach evaluating responses for a workshop called "Twist and Shout".
 Methodology:
 1. Soft Entry / Validation (acknowledging perspective).
 2. Core Value Focus (quality, capacity, time, efficiency).
@@ -117,8 +117,8 @@ Scenario Trigger: "${trigger}"
 Scenario Context: "${context}"
 User Twist: "${answer}"
 
-You MUST respond strictly with a valid JSON object in this exact format, with NO markdown formatting:
-{"score": 85, "hasSoftEntry": true, "hasValueFocus": true, "isCleanTone": true, "feedback": "Great validation of priorities.", "improvedExample": "I hear the urgency..."}`;
+Return strictly a single JSON object with no extra text or markdown formatting. Use this schema:
+{"score": 85, "hasSoftEntry": true, "hasValueFocus": true, "isCleanTone": true, "feedback": "Validation phrase present.", "improvedExample": "I hear your perspective..."}`;
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${GEMINI_API_KEY}`;
 
@@ -128,8 +128,7 @@ You MUST respond strictly with a valid JSON object in this exact format, with NO
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: systemPrompt }] }],
-          generationConfig: { responseMimeType: "application/json" }
+          contents: [{ parts: [{ text: promptText }] }]
         })
       });
 
@@ -138,116 +137,18 @@ You MUST respond strictly with a valid JSON object in this exact format, with NO
         continue;
       }
 
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error?.message || "API Request Failed");
-      }
-
       const data = await response.json();
-      let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
 
-      let parsed = {};
-      try {
-        parsed = JSON.parse(rawText);
-      } catch (e) {
-        const match = rawText.match(/\{[\s\S]*\}/);
-        if (match) parsed = JSON.parse(match[0]);
+      if (!response.ok) {
+        throw new Error(data.error?.message || `HTTP ${response.status} Error`);
       }
 
-      return {
-        score: Number(parsed.score) || 75,
-        hasSoftEntry: Boolean(parsed.hasSoftEntry),
-        hasValueFocus: Boolean(parsed.hasValueFocus),
-        isCleanTone: Boolean(parsed.isCleanTone),
-        feedback: String(parsed.feedback || "Good attempt at applying the Twist methodology."),
-        improvedExample: String(parsed.improvedExample || "I hear your concern. To ensure we maintain quality, let's review priorities together.")
-      };
+      if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
+        throw new Error("Gemini blocked or returned no candidates: " + JSON.stringify(data));
+      }
 
-    } catch (err) {
-      if (attempt === retries - 1) throw err;
-    }
-  }
-}
+      let rawText = data.candidates[0].content.parts[0].text.trim();
 
-submitBtn.addEventListener("click", async () => {
-  const answer = answerInput.value.trim();
-  if (!answer) return alert("Please type your answer first!");
-
-  submitBtn.disabled = true;
-  submitBtn.innerText = "Analyzing with AI Coach... 🧠";
-
-  try {
-    const sc = scenarios[currentStep];
-    const res = await evaluateDirectWithGemini(sc.trigger, sc.context, answer);
-    totalScore += res.score;
-
-    resultDiv.classList.remove("hidden");
-    resultDiv.innerHTML = `
-      <div class="p-6 rounded-2xl bg-slate-900 text-white space-y-4">
-        <div class="flex justify-between items-center border-b border-slate-700 pb-3">
-          <span class="text-lg font-bold">AI Coach Analysis</span>
-          <span class="text-2xl font-black ${res.score >= 80 ? 'text-green-400' : res.score >= 50 ? 'text-yellow-400' : 'text-red-400'}">${res.score}/100</span>
-        </div>
-
-        <div class="space-y-2 text-sm">
-          <div class="flex items-center gap-2">
-            <span>${res.hasSoftEntry ? '✅' : '❌'}</span>
-            <span>Soft Entry (Validation phrase)</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span>${res.hasValueFocus ? '✅' : '❌'}</span>
-            <span>Stated Value / Need (Quality, Capacity, Efficiency)</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span>${res.isCleanTone ? '✅' : '⚠️'}</span>
-            <span>Clean Tone (Free of defensive trigger words)</span>
-          </div>
-        </div>
-
-        <p class="text-sm text-slate-300 italic bg-slate-800 p-3 rounded-xl border border-slate-700">"${res.feedback}"</p>
-
-        <div class="mt-2 p-3 bg-indigo-950/60 rounded-xl border border-indigo-800 text-xs text-indigo-200">
-          <span class="font-bold block mb-1">💡 Polished Alternative:</span>
-          "${res.improvedExample}"
-        </div>
-      </div>
-    `;
-
-    inputContainer.classList.add("hidden");
-    nextBtn.classList.remove("hidden");
-  } catch (err) {
-    alert("Evaluation Error: " + err.message);
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.innerText = "Evaluate My Twist 🧪";
-  }
-});
-
-nextBtn.addEventListener("click", () => {
-  if (currentStep < scenarios.length - 1) {
-    currentStep++;
-    updateScenario();
-  } else {
-    inputContainer.classList.add("hidden");
-    resultDiv.classList.remove("hidden");
-    nextBtn.classList.add("hidden");
-    scenarioTitle.innerText = "Workshop Complete";
-    scenarioText.innerText = "Your Final Twist Evaluation";
-    scenarioContext.innerText = "";
-
-    const avgScore = Math.round(totalScore / scenarios.length);
-    
-    resultDiv.innerHTML = `
-      <div class="p-8 bg-indigo-600 text-white rounded-3xl text-center space-y-4 shadow-xl">
-        <div class="text-6xl">${avgScore >= 80 ? '🦄' : avgScore >= 60 ? '🧙‍♂️' : '🧪'}</div>
-        <div class="text-3xl font-black">${avgScore >= 80 ? 'Master of The Twist' : avgScore >= 60 ? 'Diplomatic Communicator' : 'Work in Progress'}</div>
-        <p class="text-indigo-100 italic">Overall Workshop Score: ${avgScore} / 100</p>
-      </div>
-    `;
-  }
-});
-
-updateScenario();
-</script>
-</body>
-</html>
+      // Clean out markdown wrappers
+      if (rawText.startsWith('```')) {
+        rawText = rawText.replace(/^
