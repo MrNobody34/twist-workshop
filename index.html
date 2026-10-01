@@ -42,6 +42,9 @@
 </div>
 
 <script>
+// ⚠️ Paste your Gemini API key here between the quotes
+const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE";
+
 const scenarios = [
   {
     title: "The Interruptor",
@@ -99,15 +102,51 @@ function updateScenario() {
   nextBtn.innerText = currentStep === scenarios.length - 1 ? "See Final Results 🏁" : "Next Scenario →";
 }
 
-async function evaluateWithAI(trigger, context, answer) {
-  const response = await fetch('/api/evaluate', {
+async function evaluateDirectWithGemini(trigger, context, answer) {
+  if (!GEMINI_API_KEY || GEMINI_API_KEY === "YOUR_GEMINI_API_KEY_HERE") {
+    throw new Error("Missing API Key inside index.html");
+  }
+
+  const systemPrompt = `You are an executive coach evaluating responses for a workshop called "Twist and Shout".
+Methodology:
+1. Soft Entry / Validation (acknowledging perspective).
+2. Core Value Focus (quality, capacity, time, efficiency).
+3. Constructive Twist (collaborative, free of passive-aggressive words like "obviously", "as I said").
+
+Scenario Trigger: "${trigger}"
+Scenario Context: "${context}"
+User Twist: "${answer}"
+
+Return ONLY a raw JSON object with NO markdown or backticks:
+{
+  "score": 85,
+  "hasSoftEntry": true,
+  "hasValueFocus": true,
+  "isCleanTone": true,
+  "feedback": "Concise coaching advice.",
+  "improvedExample": "Polished twist alternative."
+}`;
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+  const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ scenarioTrigger: trigger, scenarioContext: context, userTwist: answer })
+    body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }] })
   });
 
-  if (!response.ok) throw new Error('Evaluation failed');
-  return await response.json();
+  if (!response.ok) {
+    const errData = await response.json();
+    throw new Error(errData.error?.message || "API Request Failed");
+  }
+
+  const data = await response.json();
+  let rawText = data.candidates[0].content.parts[0].text.trim();
+  if (rawText.startsWith('```')) {
+    rawText = rawText.replace(/^```(json)?\n?/, '').replace(/\n?```$/, '').trim();
+  }
+
+  return JSON.parse(rawText);
 }
 
 submitBtn.addEventListener("click", async () => {
@@ -119,7 +158,7 @@ submitBtn.addEventListener("click", async () => {
 
   try {
     const sc = scenarios[currentStep];
-    const res = await evaluateWithAI(sc.trigger, sc.context, answer);
+    const res = await evaluateDirectWithGemini(sc.trigger, sc.context, answer);
     totalScore += res.score;
 
     resultDiv.classList.remove("hidden");
@@ -157,7 +196,7 @@ submitBtn.addEventListener("click", async () => {
     inputContainer.classList.add("hidden");
     nextBtn.classList.remove("hidden");
   } catch (err) {
-    alert("Could not evaluate. Please check that GEMINI_API_KEY is set in Vercel.");
+    alert("Evaluation Error: " + err.message);
   } finally {
     submitBtn.disabled = false;
     submitBtn.innerText = "Evaluate My Twist 🧪";
