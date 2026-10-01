@@ -6,62 +6,77 @@
 <title>The Twist Workshop</title>
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-50 font-sans">
+<body class="bg-slate-100 font-sans text-slate-800">
 
 <div class="min-h-screen flex items-center justify-center p-4 md:p-8">
-  <div class="w-full max-w-5xl bg-white rounded-3xl shadow-2xl p-8 md:p-16 text-center relative">
+  <div class="w-full max-w-3xl bg-white rounded-3xl shadow-xl p-6 md:p-12 relative border border-slate-200">
 
-    <h1 class="text-4xl md:text-5xl font-black mb-4">The <span class="text-indigo-600 italic">Twist</span> Workshop</h1>
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6 border-b pb-4">
+      <h1 class="text-2xl md:text-3xl font-black text-slate-900">The <span class="text-indigo-600 italic">Twist</span> Engine</h1>
+      <div id="progress" class="text-xs font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full border border-indigo-100"></div>
+    </div>
 
-    <div id="scenario-text" class="text-xl text-slate-700 mb-2"></div>
-    <div id="scenario-context" class="text-sm text-slate-400 mb-6"></div>
+    <!-- Scenario Section -->
+    <div class="mb-6 bg-slate-50 p-6 rounded-2xl border border-slate-200">
+      <span id="scenario-title" class="inline-block bg-indigo-600 text-white text-xs font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wide mb-2"></span>
+      <h2 id="scenario-text" class="text-lg md:text-xl font-bold text-slate-800 mb-2"></h2>
+      <p id="scenario-context" class="text-sm text-slate-500 italic"></p>
+    </div>
 
-    <textarea id="answer" placeholder="Type your answer here..." class="w-full h-40 p-6 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-indigo-400 mb-4 resize-none text-lg"></textarea>
+    <!-- Input Form -->
+    <div id="input-container">
+      <label class="block text-sm font-bold text-slate-700 mb-2">Your Twist (Soft Entry + Stated Value + Forward Step):</label>
+      <textarea id="answer" placeholder="e.g., I hear the urgency in your message. To make sure we don't compromise quality, let's review priorities together..." class="w-full h-36 p-4 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 mb-4 resize-none text-base transition"></textarea>
 
-    <button id="submitBtn" class="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-indigo-700 transition mb-4">Submit</button>
+      <button id="submitBtn" class="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-md hover:shadow-lg">Evaluate My Twist 🧪</button>
+    </div>
 
-    <div id="result" class="mt-6 text-center"></div>
-    <button id="nextBtn" class="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold mt-4 hover:bg-slate-800 transition hidden"></button>
+    <!-- Results Breakdown -->
+    <div id="result" class="mt-6 hidden"></div>
 
-    <div id="progress" class="mt-6 font-bold text-slate-500"></div>
-    <footer class="mt-8 text-sm text-slate-400">Created by Knowledge Team</footer>
+    <button id="nextBtn" class="w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold text-lg mt-4 hover:bg-slate-800 transition hidden shadow-md"></button>
+
+    <footer class="mt-8 text-center text-xs text-slate-400">Knowledge Team • Customer Care Enablement</footer>
   </div>
 </div>
 
 <script>
-// ------------------- SCENARIOS -------------------
 const scenarios = [
   {
-    title:"The Interruptor",
-    trigger:"You’re presenting an idea in a meeting. A colleague interrupts you (again) and says: 'This won’t work. We already tried something like this.'",
-    context:"This is a classic challenge to your authority and expertise in a public setting."
+    title: "The Interruptor",
+    trigger: "In a meeting, a colleague interrupts: 'This won't work. We already tried something like this.'",
+    context: "Raw Instinct: Wanting to snap back or defend your authority.",
+    valueFocus: "Respect for process, Openness, Efficiency",
+    exampleTwist: "I hear your concern about past experiences. To make sure we don't repeat mistakes, I'd love to share the new adjustments we made before we decide."
   },
   {
-    title:"The Last-Minute Pivot",
-    trigger:"You deliver a piece of work on time. A colleague replies: 'Actually, we need to change the whole approach. Can you redo it for tomorrow?'",
-    context:"This tests your boundaries and your ability to handle frustration regarding wasted effort."
+    title: "The Last-Minute Pivot",
+    trigger: "You submit work on time. A colleague replies: 'Actually, we need to change the whole approach. Can you redo it for tomorrow?'",
+    context: "Raw Instinct: Frustration over wasted effort and tight deadlines.",
+    valueFocus: "Capacity, Work Quality, Manageable Timing",
+    exampleTwist: "I see where you're coming from regarding the shift in approach. To deliver the quality this needs without rushing, let's discuss what we can prioritize for tomorrow."
   },
   {
-    title:"The Blame Game",
-    trigger:"A teammate messages you: 'Why is this late? This is blocking everyone.'",
-    context:"A direct digital attack that can easily trigger a defensive or aggressive counter-message."
+    title: "The Blame Game",
+    trigger: "A teammate messages publicly: 'Why is this late? This is blocking everyone.'",
+    context: "Raw Instinct: Getting defensive or firing back an excuse.",
+    valueFocus: "Clarity, Alignment, Teamwork",
+    exampleTwist: "I understand the urgency to move forward. I'm finalizing the last section now to ensure accuracy and will send it over in 20 minutes."
   },
   {
-    title:"The Idea Thief",
-    trigger:"In a meeting, a colleague presents your idea as theirs. The manager reacts positively.",
-    context:"A high-stakes situation where your ego and professional recognition are at risk."
-  },
-  {
-    title:"The Broken Record",
-    trigger:"A colleague asks a question you feel you’ve already answered multiple times. You think: 'We’ve gone over this.'",
-    context:"A test of patience and your ability to avoid sounding condescending."
+    title: "The Broken Record",
+    trigger: "A colleague asks a question you answered 10 minutes ago in an email.",
+    context: "Raw Instinct: Saying 'As I mentioned in my email...'",
+    valueFocus: "Time Management, Clarity",
+    exampleTwist: "I know there's a lot of information circulating right now. I highlighted those details in section 2 of the email—let me know if anything needs extra clarification!"
   }
 ];
 
-// ------------------- VARIABLES -------------------
 let currentStep = 0;
 let totalScore = 0;
 
+const scenarioTitle = document.getElementById("scenario-title");
 const scenarioText = document.getElementById("scenario-text");
 const scenarioContext = document.getElementById("scenario-context");
 const resultDiv = document.getElementById("result");
@@ -69,106 +84,138 @@ const answerInput = document.getElementById("answer");
 const submitBtn = document.getElementById("submitBtn");
 const nextBtn = document.getElementById("nextBtn");
 const progressDiv = document.getElementById("progress");
+const inputContainer = document.getElementById("input-container");
 
-// ------------------- UPDATE SCENARIO -------------------
 function updateScenario() {
   const sc = scenarios[currentStep];
-  scenarioText.innerText = sc.trigger;
+  scenarioTitle.innerText = sc.title;
+  scenarioText.innerText = `"${sc.trigger}"`;
   scenarioContext.innerText = sc.context;
-  progressDiv.innerText = `Scenario ${currentStep+1} of ${scenarios.length}`;
+  progressDiv.innerText = `Scenario ${currentStep + 1} / ${scenarios.length}`;
   answerInput.value = "";
   resultDiv.innerHTML = "";
+  resultDiv.classList.add("hidden");
   nextBtn.classList.add("hidden");
+  inputContainer.classList.remove("hidden");
   submitBtn.disabled = false;
 
-  // Update next button text
-  nextBtn.innerText = currentStep === scenarios.length-1 ? "See Final Result 🏁" : "Next Scenario";
-}
-updateScenario();
-
-// ------------------- SMART SCORING -------------------
-function evaluateAnswer(answer){
-  const text = answer.toLowerCase();
-  if(text.trim().length < 5 || text.match(/^(bla|test|asdf|123)+$/i)) return 40;
-
-  const negative = ["shit","stupid","idiot","hate","useless","bad","ridiculous","angry","dumb","stop"];
-  const empathy   = ["please","thank","suggest","could","might","recommend","appreciate","understand","support"];
-  const positive  = ["great","awesome","love","happy","fun","cheers","haha","delighted","excited","celebrate","coffee","together","lol"];
-  const neutral   = ["ok","fine","noted","understood","yes","no","this","i’m","the","whatever"];
-
-  const containsAny = (list) => list.some(w => text.includes(w));
-
-  if(containsAny(negative)) return 20;
-  if(containsAny(positive)) return 100;
-  if(containsAny(empathy)) return 80;
-  if(containsAny(neutral)) return 60;
-  return 40;
+  nextBtn.innerText = currentStep === scenarios.length - 1 ? "See Workshop Results 🏁" : "Next Scenario →";
 }
 
-function getTip(score){
-  switch(score){
-    case 20: return "Your response is aggressive. Stay calm and polite.";
-    case 40: return "Polite but could be more helpful. Avoid nonsense answers.";
-    case 60: return "Neutral response. Aim to add empathy or constructive suggestions.";
-    case 80: return "Good empathy! Try to add humor or warmth for maximum effect.";
-    case 100: return "Excellent! You turned the situation into a bonding moment.";
+// ------------------- SMART EVALUATION ENGINE -------------------
+function evaluateAnswer(answer) {
+  const text = answer.toLowerCase().trim();
+  
+  if (text.length < 12) {
+    return { score: 20, softEntry: false, valueStated: false, passiveAggressive: false, msg: "Response is too short to be an effective Twist." };
   }
+
+  // 1. Soft Entry Check (Validation phrases)
+  const softEntryKeywords = ["i understand", "i hear", "i see", "i appreciate", "i know", "completely understand", "makes sense", "fair point"];
+  const hasSoftEntry = softEntryKeywords.some(kw => text.includes(kw));
+
+  // 2. Value / Need Focus Check
+  const valueKeywords = ["quality", "priority", "prioritize", "capacity", "clarity", "time", "focus", "align", "alignment", "together", "support", "goal", "ensure", "accuracy", "structure"];
+  const hasValue = valueKeywords.some(kw => text.includes(kw));
+
+  // 3. Passive-Aggressive & Defensive Trigger Words
+  const paKeywords = ["as i said", "as mentioned", "obviously", "again", "per my email", "you should have", "not my job", "already told you", "why didn't you", "actually"];
+  const hasPA = paKeywords.some(kw => text.includes(kw));
+
+  let score = 40; // Base score
+  if (hasSoftEntry) score += 30;
+  if (hasValue) score += 30;
+  if (hasPA) score -= 30;
+
+  score = Math.max(20, Math.min(100, score));
+
+  return {
+    score,
+    softEntry: hasSoftEntry,
+    valueStated: hasValue,
+    passiveAggressive: hasPA
+  };
 }
 
-function getBadge(totalScore){
-  if(totalScore < 200) return {name:"The Chaos Apprentice", emoji:"🧨", msg:"You brought… energy. Let’s channel it before HR gets involved."};
-  if(totalScore < 300) return {name:"The Polite Survivor", emoji:"😬", msg:"You survived the meeting, but feelings were injured along the way."};
-  if(totalScore < 400) return {name:"The Diplomatic Wizard", emoji:"🧙‍♂️", msg:"You navigated tension like a pro. Gandalf would approve."};
-  if(totalScore < 450) return {name:"The Emotional Alchemist", emoji:"🧪", msg:"You turned friction into progress. That’s rare. And impressive."};
-  return {name:"Master of The Twist", emoji:"🦄✨", msg:"Conflict? What conflict? You made people smile while disagreeing."};
-}
-
-// ------------------- BUTTON EVENTS -------------------
+// ------------------- EVENT HANDLERS -------------------
 submitBtn.addEventListener("click", () => {
   const answer = answerInput.value.trim();
-  if(!answer) return alert("Type your answer");
+  if (!answer) return alert("Please write a response first!");
 
-  const score = evaluateAnswer(answer);
-  const tip = getTip(score);
-  totalScore += score;
+  const sc = scenarios[currentStep];
+  const evalResult = evaluateAnswer(answer);
+  totalScore += evalResult.score;
 
-  const color = score === 20 ? "bg-red-500" :
-                score === 40 ? "bg-yellow-500" :
-                score === 60 ? "bg-blue-500" :
-                score === 80 ? "bg-green-500" :
-                "bg-pink-500";
+  // Build Diagnostic Feedback UI
+  resultDiv.classList.remove("hidden");
+  resultDiv.innerHTML = `
+    <div class="p-6 rounded-2xl bg-slate-900 text-white space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+        <span class="text-lg font-bold">Twist Analysis</span>
+        <span class="text-2xl font-black ${evalResult.score >= 80 ? 'text-green-400' : evalResult.score >= 50 ? 'text-yellow-400' : 'text-red-400'}">${evalResult.score}/100</span>
+      </div>
 
-  resultDiv.innerHTML = `<div class="p-4 rounded-xl text-white font-bold ${color}">
-    Score: ${score}<br>Tip: ${tip}
-  </div>`;
+      <!-- Checklist -->
+      <div class="space-y-2 text-sm">
+        <div class="flex items-center gap-2">
+          <span>${evalResult.softEntry ? '✅' : '❌'}</span>
+          <span class="${evalResult.softEntry ? 'text-slate-200' : 'text-slate-400'}">Soft Entry (Validation Phrase)</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span>${evalResult.valueStated ? '✅' : '❌'}</span>
+          <span class="${evalResult.valueStated ? 'text-slate-200' : 'text-slate-400'}">Core Value / Need Stated (Quality, Capacity, Time)</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span>${!evalResult.passiveAggressive ? '✅' : '⚠️'}</span>
+          <span class="${!evalResult.passiveAggressive ? 'text-slate-200' : 'text-amber-400 font-bold'}">${evalResult.passiveAggressive ? 'Warning: Contains passive-aggressive phrasing ("as I said", "obviously", etc.)' : 'Clean Tone (No defensive triggers)'}</span>
+        </div>
+      </div>
 
+      <!-- Suggested Polish -->
+      <div class="mt-4 p-4 bg-slate-800 rounded-xl border border-slate-700 text-xs text-slate-300">
+        <span class="font-bold text-indigo-400 block mb-1">💡 Ideal Workshop Twist Example:</span>
+        "${sc.exampleTwist}"
+      </div>
+    </div>
+  `;
+
+  inputContainer.classList.add("hidden");
   nextBtn.classList.remove("hidden");
-  submitBtn.disabled = true;
 });
 
 nextBtn.addEventListener("click", () => {
-  if(currentStep < scenarios.length-1){
+  if (currentStep < scenarios.length - 1) {
     currentStep++;
     updateScenario();
   } else {
-    // Final screen
-    scenarioText.innerHTML = "";
-    scenarioContext.innerHTML = "";
-    answerInput.style.display = "none";
-    submitBtn.style.display = "none";
-    nextBtn.style.display = "none";
+    // Final Results Screen
+    inputContainer.classList.add("hidden");
+    resultDiv.classList.remove("hidden");
+    nextBtn.classList.add("hidden");
+    scenarioTitle.innerText = "Workshop Complete";
+    scenarioText.innerText = "Your Final Twist Evaluation";
+    scenarioContext.innerText = "";
 
-    const badge = getBadge(totalScore);
+    const avgScore = Math.round(totalScore / scenarios.length);
+    
     resultDiv.innerHTML = `
-      <div class="p-8 bg-indigo-600 text-white rounded-3xl">
-        <div class="text-6xl mb-4">${badge.emoji}</div>
-        <div class="text-3xl font-bold mb-2">${badge.name}</div>
-        <div class="text-lg italic">${badge.msg}</div>
-        <div class="mt-4 font-bold text-xl">Total Score: ${totalScore}</div>
+      <div class="p-8 bg-indigo-600 text-white rounded-3xl text-center space-y-4 shadow-xl">
+        <div class="text-6xl">${avgScore >= 80 ? '🦄' : avgScore >= 60 ? '🧙‍♂️' : '🧪'}</div>
+        <div class="text-3xl font-black">${avgScore >= 80 ? 'Master of The Twist' : avgScore >= 60 ? 'Diplomatic Communicator' : 'Work in Progress'}</div>
+        <p class="text-indigo-100 italic">Overall Workshop Score: ${avgScore} / 100</p>
+        <div class="text-sm bg-indigo-700 p-4 rounded-xl text-left space-y-1">
+          <p><strong>Key Takeaways:</strong></p>
+          <p>• Always start with a <strong>Soft Entry</strong> to lower defensiveness.</p>
+          <p>• Express your <strong>Underlying Need</strong>, not your emotional frustration.</p>
+          <p>• Avoid defensive trigger words like <em>"As I mentioned"</em> or <em>"Obviously"</em>.</p>
+        </div>
       </div>
     `;
   }
 });
+
+// Initialize first scenario
+updateScenario();
 </script>
 </body>
 </html>
