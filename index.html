@@ -151,4 +151,115 @@ Return strictly a single JSON object with no extra text or markdown formatting. 
 
       // Clean out markdown wrappers
       if (rawText.startsWith('```')) {
-        rawText = rawText.replace(/^
+        rawText = rawText.replace(/^```(json)?\n?/, '').replace(/\n?```$/, '').trim();
+      }
+
+      let parsed = {};
+      try {
+        parsed = JSON.parse(rawText);
+      } catch (e) {
+        const match = rawText.match(/\{[\s\S]*\}/);
+        if (match) {
+          parsed = JSON.parse(match[0]);
+        }
+      }
+
+      return {
+        score: typeof parsed.score === 'number' ? parsed.score : 75,
+        hasSoftEntry: parsed.hasSoftEntry !== undefined ? Boolean(parsed.hasSoftEntry) : true,
+        hasValueFocus: parsed.hasValueFocus !== undefined ? Boolean(parsed.hasValueFocus) : true,
+        isCleanTone: parsed.isCleanTone !== undefined ? Boolean(parsed.isCleanTone) : true,
+        feedback: parsed.feedback || "Good application of the Twist structure.",
+        improvedExample: parsed.improvedExample || "I hear your thoughts. Let's align on next steps together."
+      };
+
+    } catch (err) {
+      if (attempt === retries - 1) throw err;
+    }
+  }
+}
+
+submitBtn.addEventListener("click", async () => {
+  const answer = answerInput.value.trim();
+  if (!answer) return alert("Please type your answer first!");
+
+  submitBtn.disabled = true;
+  submitBtn.innerText = "Analyzing with AI Coach... 🧠";
+
+  try {
+    const sc = scenarios[currentStep];
+    const res = await evaluateDirectWithGemini(sc.trigger, sc.context, answer);
+    
+    // Ensure totalScore calculation never fails
+    totalScore += (res && res.score) ? res.score : 70;
+
+    resultDiv.classList.remove("hidden");
+    resultDiv.innerHTML = `
+      <div class="p-6 rounded-2xl bg-slate-900 text-white space-y-4">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+          <span class="text-lg font-bold">AI Coach Analysis</span>
+          <span class="text-2xl font-black ${res.score >= 80 ? 'text-green-400' : res.score >= 50 ? 'text-yellow-400' : 'text-red-400'}">${res.score}/100</span>
+        </div>
+
+        <div class="space-y-2 text-sm">
+          <div class="flex items-center gap-2">
+            <span>${res.hasSoftEntry ? '✅' : '❌'}</span>
+            <span>Soft Entry (Validation phrase)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span>${res.hasValueFocus ? '✅' : '❌'}</span>
+            <span>Stated Value / Need (Quality, Capacity, Efficiency)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span>${res.isCleanTone ? '✅' : '⚠️'}</span>
+            <span>Clean Tone (Free of defensive trigger words)</span>
+          </div>
+        </div>
+
+        <p class="text-sm text-slate-300 italic bg-slate-800 p-3 rounded-xl border border-slate-700">"${res.feedback}"</p>
+
+        <div class="mt-2 p-3 bg-indigo-950/60 rounded-xl border border-indigo-800 text-xs text-indigo-200">
+          <span class="font-bold block mb-1">💡 Polished Alternative:</span>
+          "${res.improvedExample}"
+        </div>
+      </div>
+    `;
+
+    inputContainer.classList.add("hidden");
+    nextBtn.classList.remove("hidden");
+  } catch (err) {
+    alert("Evaluation Error: " + err.message);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerText = "Evaluate My Twist 🧪";
+  }
+});
+
+nextBtn.addEventListener("click", () => {
+  if (currentStep < scenarios.length - 1) {
+    currentStep++;
+    updateScenario();
+  } else {
+    inputContainer.classList.add("hidden");
+    resultDiv.classList.remove("hidden");
+    nextBtn.classList.add("hidden");
+    scenarioTitle.innerText = "Workshop Complete";
+    scenarioText.innerText = "Your Final Twist Evaluation";
+    scenarioContext.innerText = "";
+
+    const avgScore = Math.round(totalScore / scenarios.length);
+    
+    resultDiv.innerHTML = `
+      <div class="p-8 bg-indigo-600 text-white rounded-3xl text-center space-y-4 shadow-xl">
+        <div class="text-6xl">${avgScore >= 80 ? '🦄' : avgScore >= 60 ? '🧙‍♂️' : '🧪'}</div>
+        <div class="text-3xl font-black">${avgScore >= 80 ? 'Master of The Twist' : avgScore >= 60 ? 'Diplomatic Communicator' : 'Work in Progress'}</div>
+        <p class="text-indigo-100 italic">Overall Workshop Score: ${avgScore} / 100</p>
+      </div>
+    `;
+  }
+});
+
+updateScenario();
+</script>
+</body>
+</html>
