@@ -111,13 +111,13 @@ async function evaluateDirectWithGemini(trigger, context, answer, retries = 3) {
 Methodology:
 1. Soft Entry / Validation (acknowledging perspective).
 2. Core Value Focus (quality, capacity, time, efficiency).
-3. Constructive Twist (collaborative, free of passive-aggressive words like "obviously", "as I said").
+3. Constructive Twist (collaborative, free of passive-aggressive words).
 
 Scenario Trigger: "${trigger}"
 Scenario Context: "${context}"
 User Twist: "${answer}"
 
-Return ONLY a raw JSON object with NO markdown formatting or backticks:
+Return strictly a single valid JSON object. Do not wrap in markdown or backticks. Schema:
 {
   "score": 85,
   "hasSoftEntry": true,
@@ -138,7 +138,6 @@ Return ONLY a raw JSON object with NO markdown formatting or backticks:
       });
 
       if (response.status === 429 || response.status === 503) {
-        // High demand / Rate limited -> Wait 2 seconds and retry
         await new Promise(resolve => setTimeout(resolve, 2000));
         continue;
       }
@@ -149,12 +148,25 @@ Return ONLY a raw JSON object with NO markdown formatting or backticks:
       }
 
       const data = await response.json();
-      let rawText = data.candidates[0].content.parts[0].text.trim();
-      if (rawText.startsWith('```')) {
-        rawText = rawText.replace(/^```(json)?\n?/, '').replace(/\n?```$/, '').trim();
+      let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+      // Regex extraction to cleanly locate the JSON object inside the raw output
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("AI returned invalid response structure. Please try submitting again.");
       }
 
-      return JSON.parse(rawText);
+      const result = JSON.parse(jsonMatch[0]);
+
+      return {
+        score: typeof result.score === 'number' ? result.score : 70,
+        hasSoftEntry: Boolean(result.hasSoftEntry),
+        hasValueFocus: Boolean(result.hasValueFocus),
+        isCleanTone: Boolean(result.isCleanTone),
+        feedback: result.feedback || "Good effort! Keep practicing your soft entry and value framing.",
+        improvedExample: result.improvedExample || "Try starting with validation before stating your boundary."
+      };
+
     } catch (err) {
       if (attempt === retries - 1) throw err;
     }
