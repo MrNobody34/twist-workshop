@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Twist Workshop</title>
+<title>The Twist Engine (Hybrid Edition)</title>
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-100 font-sans text-slate-800">
@@ -11,15 +11,35 @@
 <div class="min-h-screen flex items-center justify-center p-4 md:p-8">
   <div class="w-full max-w-3xl bg-white rounded-3xl shadow-xl p-6 md:p-12 relative border border-slate-200">
 
-    <!-- Header -->
-    <div class="flex justify-between items-center mb-6 border-b pb-4">
-      <h1 class="text-2xl md:text-3xl font-black text-slate-900">The <span class="text-indigo-600 italic">Twist</span> Engine</h1>
-      <div id="progress" class="text-xs font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full border border-indigo-100"></div>
+    <!-- Header & Mode Switcher -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b pb-4 gap-4">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-black text-slate-900">The <span class="text-indigo-600 italic">Twist</span> Engine</h1>
+        <div class="flex items-center gap-2 mt-1">
+          <span id="mode-badge" class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Online Mode (Gemini AI)
+          </span>
+        </div>
+      </div>
+
+      <!-- Quick Toggle Button for Facilitator -->
+      <div class="flex items-center bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+        <button id="btn-mode-online" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-white text-indigo-600 shadow-sm">
+          🌐 Online AI
+        </button>
+        <button id="btn-mode-offline" class="px-3 py-1.5 rounded-xl text-xs font-bold transition text-slate-500 hover:text-slate-800">
+          ⚡ Offline Smart
+        </button>
+      </div>
     </div>
 
     <!-- Scenario Section -->
     <div class="mb-6 bg-slate-50 p-6 rounded-2xl border border-slate-200">
-      <span id="scenario-title" class="inline-block bg-indigo-600 text-white text-xs font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wide mb-2"></span>
+      <div class="flex justify-between items-center mb-2">
+        <span id="scenario-title" class="inline-block bg-indigo-600 text-white text-xs font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wide"></span>
+        <div id="progress" class="text-xs font-bold text-slate-400"></div>
+      </div>
       <h2 id="scenario-text" class="text-lg md:text-xl font-bold text-slate-800 mb-2"></h2>
       <p id="scenario-context" class="text-sm text-slate-500 italic"></p>
     </div>
@@ -27,7 +47,7 @@
     <!-- Input Form -->
     <div id="input-container">
       <label class="block text-sm font-bold text-slate-700 mb-2">Your Twist (Soft Entry + Stated Value + Forward Step):</label>
-      <textarea id="answer" placeholder="e.g., I hear the urgency in your message. To make sure we don't compromise quality, let's review priorities together..." class="w-full h-36 p-4 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 mb-4 resize-none text-base transition"></textarea>
+      <textarea id="answer" placeholder="e.g., I hear your point on the timeline. To make sure we don't compromise deliverable quality, let's review priorities together..." class="w-full h-36 p-4 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 mb-4 resize-none text-base transition"></textarea>
 
       <button id="submitBtn" class="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-md hover:shadow-lg">Evaluate My Twist 🧪</button>
     </div>
@@ -42,40 +62,59 @@
 </div>
 
 <script>
-// Paste your Gemini API key here
-const GEMINI_API_KEY = "AQ.Ab8RN6IuTnlYxwN1B9ZGN0lJZtcqRr5hIXT03DqqtJxNHvbDvA";
+// Optional: Paste key here if using online mode
+const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE";
+
+// Global Mode State ('online' vs 'offline')
+let currentEngineMode = "online";
 
 const scenarios = [
   {
     title: "The Interruptor",
     trigger: "You’re presenting an idea in a meeting. A colleague interrupts you (again) and says: 'This won’t work. We already tried something like this.'",
-    context: "This is a classic challenge to your authority and expertise in a public setting."
+    context: "This is a classic challenge to your authority and expertise in a public setting.",
+    keywords: ["tried", "work", "past", "different", "idea", "perspective", "approach"],
+    exemplar: "I appreciate you bringing up previous iterations. To make sure we don't miss new opportunities while respecting past learnings, let's compare what changed in this version."
   },
   {
     title: "The Last-Minute Pivot",
     trigger: "You deliver a piece of work on time. A colleague replies: 'Actually, we need to change the whole approach. Can you redo it for tomorrow?'",
-    context: "This tests your boundaries and your ability to handle frustration regarding wasted effort."
+    context: "This tests your boundaries and your ability to handle frustration regarding wasted effort.",
+    keywords: ["timeline", "scope", "quality", "priority", "capacity", "deadline", "urgent"],
+    exemplar: "I understand the shift in requirements. To protect project quality without overextending current capacity, let's define what scope can be deferred to meet tomorrow's date."
   },
   {
     title: "The Blame Game",
     trigger: "A teammate messages you: 'Why is this late? This is blocking everyone.'",
-    context: "A direct digital attack that can easily trigger a defensive or aggressive counter-message."
+    context: "A direct digital attack that can easily trigger a defensive or aggressive counter-message.",
+    keywords: ["blocker", "status", "progress", "align", "clarity", "dependency", "next steps"],
+    exemplar: "I see how critical this timeline is for the wider team. To unblock everyone efficiently, let me send you the completed core modules right now while finalizing the rest."
   },
   {
     title: "The Idea Thief",
     trigger: "In a meeting, a colleague presents your idea as theirs. The manager reacts positively.",
-    context: "A high-stakes situation where your ego and professional recognition are at risk."
+    context: "A high-stakes situation where your ego and professional recognition are at risk.",
+    keywords: ["build", "expand", "discussed", "collaboration", "details", "data", "next steps"],
+    exemplar: "Glad to see this concept resonating with the room. To build on what was just presented, I can share the background research and implementation plan I put together."
   },
   {
     title: "The Broken Record",
     trigger: "A colleague asks a question you feel you’ve already answered multiple times. You think: 'We’ve gone over this.'",
-    context: "A test of patience and your ability to avoid sounding condescending."
+    context: "A test of patience and your ability to avoid sounding condescending.",
+    keywords: ["clarify", "doc", "link", "resource", "walkthrough", "step", "summary"],
+    exemplar: "Happy to clarify this part of the process. To keep things centralized for future reference, I’ll drop the direct link to section 3 where this is documented step-by-step."
   }
 ];
+
+// Offline Rule Lexicons
+const validationStems = ["i hear", "i understand", "i appreciate", "i see", "makes sense", "fair point", "good point", "glad to see", "thanks for", "i agree"];
+const valueKeywords = ["quality", "time", "capacity", "priority", "scope", "efficiency", "alignment", "accuracy", "focus", "impact", "resource", "bandwidth"];
+const defensiveWords = ["obviously", "as i said", "again", "per my previous", "like i told you", "you should have", "not my fault", "frankly"];
 
 let currentStep = 0;
 let totalScore = 0;
 
+// DOM Elements
 const scenarioTitle = document.getElementById("scenario-title");
 const scenarioText = document.getElementById("scenario-text");
 const scenarioContext = document.getElementById("scenario-context");
@@ -85,6 +124,28 @@ const submitBtn = document.getElementById("submitBtn");
 const nextBtn = document.getElementById("nextBtn");
 const progressDiv = document.getElementById("progress");
 const inputContainer = document.getElementById("input-container");
+const btnOnline = document.getElementById("btn-mode-online");
+const btnOffline = document.getElementById("btn-mode-offline");
+const modeBadge = document.getElementById("mode-badge");
+
+// Mode Switcher Controls
+function setMode(mode) {
+  currentEngineMode = mode;
+  if (mode === "online") {
+    btnOnline.className = "px-3 py-1.5 rounded-xl text-xs font-bold transition bg-white text-indigo-600 shadow-sm";
+    btnOffline.className = "px-3 py-1.5 rounded-xl text-xs font-bold transition text-slate-500 hover:text-slate-800";
+    modeBadge.className = "text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5";
+    modeBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Online Mode (Gemini AI)`;
+  } else {
+    btnOffline.className = "px-3 py-1.5 rounded-xl text-xs font-bold transition bg-white text-indigo-600 shadow-sm";
+    btnOnline.className = "px-3 py-1.5 rounded-xl text-xs font-bold transition text-slate-500 hover:text-slate-800";
+    modeBadge.className = "text-xs bg-amber-100 text-amber-800 font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5";
+    modeBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span> Offline Smart Engine`;
+  }
+}
+
+btnOnline.addEventListener("click", () => setMode("online"));
+btnOffline.addEventListener("click", () => setMode("offline"));
 
 function updateScenario() {
   const sc = scenarios[currentStep];
@@ -102,137 +163,133 @@ function updateScenario() {
   nextBtn.innerText = currentStep === scenarios.length - 1 ? "See Final Results 🏁" : "Next Scenario →";
 }
 
-async function evaluateDirectWithGemini(trigger, context, answer, retries = 3) {
+// 1. ONLINE ENGINE (Gemini API)
+async function evaluateOnline(trigger, context, answer) {
   if (!GEMINI_API_KEY || GEMINI_API_KEY === "YOUR_GEMINI_API_KEY_HERE") {
-    throw new Error("Missing API Key inside index.html");
+    throw new Error("Missing API Key");
   }
 
-  const promptText = `You are an executive coach evaluating responses for a workshop called "Twist and Shout".
-Methodology:
-1. Soft Entry / Validation (acknowledging perspective).
-2. Core Value Focus (quality, capacity, time, efficiency).
-3. Constructive Twist (collaborative, free of passive-aggressive words).
-
-Scenario Trigger: "${trigger}"
-Scenario Context: "${context}"
-User Twist: "${answer}"
-
-Return strictly a single JSON object with no extra text or markdown formatting. Use this schema:
-{"score": 85, "hasSoftEntry": true, "hasValueFocus": true, "isCleanTone": true, "feedback": "Validation phrase present.", "improvedExample": "I hear your perspective..."}`;
+  const promptText = `Evaluate for "Twist and Shout" workshop. Trigger: "${trigger}". Context: "${context}". User response: "${answer}". Return strictly JSON without markdown: {"score": 85, "hasSoftEntry": true, "hasValueFocus": true, "isCleanTone": true, "feedback": "Advice here", "improvedExample": "Alternative here"}`;
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${GEMINI_API_KEY}`;
 
-  for (let attempt = 0; attempt < retries; attempt++) {
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: promptText }] }]
-        })
-      });
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+  });
 
-      if (response.status === 429 || response.status === 503) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        continue;
-      }
+  if (!response.ok) throw new Error(`API Error ${response.status}`);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || `HTTP ${response.status} Error`);
-      }
-
-      if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
-        throw new Error("Gemini blocked or returned no candidates: " + JSON.stringify(data));
-      }
-
-      let rawText = data.candidates[0].content.parts[0].text.trim();
-
-      // Clean out markdown wrappers
-      if (rawText.startsWith('```')) {
-        rawText = rawText.replace(/^```(json)?\n?/, '').replace(/\n?```$/, '').trim();
-      }
-
-      let parsed = {};
-      try {
-        parsed = JSON.parse(rawText);
-      } catch (e) {
-        const match = rawText.match(/\{[\s\S]*\}/);
-        if (match) {
-          parsed = JSON.parse(match[0]);
-        }
-      }
-
-      return {
-        score: typeof parsed.score === 'number' ? parsed.score : 75,
-        hasSoftEntry: parsed.hasSoftEntry !== undefined ? Boolean(parsed.hasSoftEntry) : true,
-        hasValueFocus: parsed.hasValueFocus !== undefined ? Boolean(parsed.hasValueFocus) : true,
-        isCleanTone: parsed.isCleanTone !== undefined ? Boolean(parsed.isCleanTone) : true,
-        feedback: parsed.feedback || "Good application of the Twist structure.",
-        improvedExample: parsed.improvedExample || "I hear your thoughts. Let's align on next steps together."
-      };
-
-    } catch (err) {
-      if (attempt === retries - 1) throw err;
-    }
+  const data = await response.json();
+  let rawText = data.candidates[0].content.parts[0].text.trim();
+  if (rawText.startsWith('```')) {
+    rawText = rawText.replace(/^```(json)?\n?/, '').replace(/\n?```$/, '').trim();
   }
+  return JSON.parse(rawText);
 }
 
+// 2. OFFLINE SMART ENGINE (Rule-based NLP)
+function evaluateOffline(answerText, scenario) {
+  const text = answerText.toLowerCase().trim();
+  const words = text.split(/\s+/);
+
+  const hasSoftEntry = validationStems.some(stem => text.includes(stem));
+  const hasValueFocus = valueKeywords.some(word => text.includes(word));
+  const flaggedWords = defensiveWords.filter(word => text.includes(word));
+  const isCleanTone = flaggedWords.length === 0;
+
+  let score = 50;
+  if (hasSoftEntry) score += 25;
+  if (hasValueFocus) score += 20;
+  if (isCleanTone) score += 10;
+  if (words.length < 7) score -= 20;
+
+  score = Math.max(20, Math.min(100, score));
+
+  let feedback = "Solid structure! ";
+  if (score >= 80) feedback = "Excellent Twist! You validated perspectives while maintaining clear value boundaries.";
+  else if (!hasSoftEntry) feedback += "Start your response with a soft entry phrase (e.g., 'I hear your point...').";
+  else if (!hasValueFocus) feedback += "Anchor your counter-offer directly to operational needs like quality or capacity.";
+
+  if (!isCleanTone) feedback += ` Tone Note: Avoid defensive words like "${flaggedWords.join(', ')}".`;
+
+  return {
+    score,
+    hasSoftEntry,
+    hasValueFocus,
+    isCleanTone,
+    feedback,
+    improvedExample: scenario.exemplar
+  };
+}
+
+// MAIN SUBMIT HANDLER WITH AUTOMATIC FALLBACK
 submitBtn.addEventListener("click", async () => {
   const answer = answerInput.value.trim();
   if (!answer) return alert("Please type your answer first!");
 
   submitBtn.disabled = true;
-  submitBtn.innerText = "Analyzing with AI Coach... 🧠";
+  submitBtn.innerText = "Analyzing Twist... 🧠";
 
-  try {
-    const sc = scenarios[currentStep];
-    const res = await evaluateDirectWithGemini(sc.trigger, sc.context, answer);
-    
-    // Ensure totalScore calculation never fails
-    totalScore += (res && res.score) ? res.score : 70;
+  const sc = scenarios[currentStep];
+  let res = null;
+  let usedEngine = currentEngineMode;
 
-    resultDiv.classList.remove("hidden");
-    resultDiv.innerHTML = `
-      <div class="p-6 rounded-2xl bg-slate-900 text-white space-y-4">
-        <div class="flex justify-between items-center border-b border-slate-700 pb-3">
-          <span class="text-lg font-bold">AI Coach Analysis</span>
-          <span class="text-2xl font-black ${res.score >= 80 ? 'text-green-400' : res.score >= 50 ? 'text-yellow-400' : 'text-red-400'}">${res.score}/100</span>
+  if (currentEngineMode === "online") {
+    try {
+      res = await evaluateOnline(sc.trigger, sc.context, answer);
+    } catch (err) {
+      console.warn("Online API failed, auto-falling back to Offline Smart Mode:", err);
+      // Auto-fallback seamlessly
+      res = evaluateOffline(answer, sc);
+      usedEngine = "offline (auto-fallback)";
+    }
+  } else {
+    res = evaluateOffline(answer, sc);
+  }
+
+  totalScore += res.score;
+
+  resultDiv.classList.remove("hidden");
+  resultDiv.innerHTML = `
+    <div class="p-6 rounded-2xl bg-slate-900 text-white space-y-4 shadow-lg">
+      <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+        <div>
+          <span class="text-lg font-bold">Analysis</span>
+          <span class="text-xs text-slate-400 block">Engine: ${usedEngine}</span>
         </div>
+        <span class="text-2xl font-black ${res.score >= 80 ? 'text-green-400' : res.score >= 60 ? 'text-yellow-400' : 'text-red-400'}">${res.score}/100</span>
+      </div>
 
-        <div class="space-y-2 text-sm">
-          <div class="flex items-center gap-2">
-            <span>${res.hasSoftEntry ? '✅' : '❌'}</span>
-            <span>Soft Entry (Validation phrase)</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span>${res.hasValueFocus ? '✅' : '❌'}</span>
-            <span>Stated Value / Need (Quality, Capacity, Efficiency)</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span>${res.isCleanTone ? '✅' : '⚠️'}</span>
-            <span>Clean Tone (Free of defensive trigger words)</span>
-          </div>
+      <div class="space-y-2 text-sm">
+        <div class="flex items-center gap-2">
+          <span>${res.hasSoftEntry ? '✅' : '❌'}</span>
+          <span>Soft Entry (Validation phrase)</span>
         </div>
-
-        <p class="text-sm text-slate-300 italic bg-slate-800 p-3 rounded-xl border border-slate-700">"${res.feedback}"</p>
-
-        <div class="mt-2 p-3 bg-indigo-950/60 rounded-xl border border-indigo-800 text-xs text-indigo-200">
-          <span class="font-bold block mb-1">💡 Polished Alternative:</span>
-          "${res.improvedExample}"
+        <div class="flex items-center gap-2">
+          <span>${res.hasValueFocus ? '✅' : '❌'}</span>
+          <span>Stated Value / Need (Quality, Capacity, Scope, Time)</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span>${res.isCleanTone ? '✅' : '⚠️'}</span>
+          <span>Clean Tone (Free of defensive trigger words)</span>
         </div>
       </div>
-    `;
 
-    inputContainer.classList.add("hidden");
-    nextBtn.classList.remove("hidden");
-  } catch (err) {
-    alert("Evaluation Error: " + err.message);
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.innerText = "Evaluate My Twist 🧪";
-  }
+      <p class="text-sm text-slate-300 italic bg-slate-800 p-3.5 rounded-xl border border-slate-700">"${res.feedback}"</p>
+
+      <div class="mt-2 p-3.5 bg-indigo-950/60 rounded-xl border border-indigo-800 text-xs text-indigo-200">
+        <span class="font-bold block mb-1">💡 Polished Alternative:</span>
+        "${res.improvedExample}"
+      </div>
+    </div>
+  `;
+
+  inputContainer.classList.add("hidden");
+  nextBtn.classList.remove("hidden");
+  submitBtn.disabled = false;
+  submitBtn.innerText = "Evaluate My Twist 🧪";
 });
 
 nextBtn.addEventListener("click", () => {
